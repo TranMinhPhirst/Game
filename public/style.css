@@ -23,7 +23,7 @@
 
   --accent:      #e8e6e3;
 
-  --tile:        62px;
+  --tile:        58px;
   --gap:         6px;
   --r-sm:        4px;
   --r-md:        8px;
@@ -44,7 +44,7 @@ body {
   line-height: 1.5;
 }
 
-/* Subtle dot grid — NOT floating orbs */
+/* Subtle dot grid */
 body::before {
   content: '';
   position: fixed; inset: 0; z-index: 0;
@@ -71,17 +71,17 @@ body::before {
 /* ===== TYPOGRAPHY ===== */
 h1 {
   font-size: 2rem; font-weight: 800; letter-spacing: 6px;
-  color: var(--text); margin-top: 1rem;
+  color: var(--text); margin-top: 0.8rem;
 }
 h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem; }
-.tagline, .panel-desc { color: var(--text-2); font-size: 0.9rem; margin-bottom: 1.5rem; }
+.tagline, .panel-desc { color: var(--text-2); font-size: 0.9rem; margin-bottom: 1.2rem; }
 
 /* ===== BRAND / MENU ===== */
 .menu-wrap {
-  width: 100%; max-width: 380px; text-align: center;
+  width: 100%; max-width: 420px; text-align: center;
 }
 
-.brand { margin-bottom: 2.5rem; }
+.brand { margin-bottom: 1.8rem; }
 .brand-tiles { display: flex; gap: 8px; justify-content: center; margin-bottom: 0.5rem; }
 .brand-tile {
   width: 52px; height: 56px;
@@ -95,6 +95,35 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 .brand-tile:nth-child(2) { background: var(--yellow); }
 .brand-tile:nth-child(3) { background: var(--red); }
 .brand-tile:nth-child(4) { background: var(--green); }
+
+/* ===== SUBMODE SELECTOR ===== */
+.submode-selector {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-bottom: 1.2rem;
+}
+.submode-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 10px 8px; border-radius: var(--r-md);
+  background: var(--surface); border: 1.5px solid var(--border);
+  color: var(--text-2); cursor: pointer; transition: all 0.15s ease;
+  font-family: var(--ff); text-align: center;
+}
+.submode-btn:hover { border-color: var(--border-light); color: var(--text); }
+.submode-btn.active {
+  background: var(--surface-2); border-color: var(--accent); color: #fff;
+}
+.mode-icon { font-size: 1.2rem; margin-bottom: 2px; }
+.mode-title { font-size: 0.88rem; font-weight: 700; }
+.mode-desc { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+.submode-btn.active .mode-desc { color: var(--text-2); }
+
+.submode-selector-sm { margin-bottom: 0.5rem; }
+.submode-selector-sm .submode-btn { padding: 8px; font-size: 0.82rem; font-weight: 600; }
+.lobby-submode-select { margin-bottom: 1.2rem; text-align: left; }
+.lobby-label {
+  font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 6px;
+}
 
 /* ===== BUTTONS ===== */
 .btn {
@@ -120,7 +149,7 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 .btn-full { width: 100%; }
 .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; }
 
-.menu-actions { display: flex; flex-direction: column; gap: 10px; margin-bottom: 2rem; }
+.menu-actions { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.8rem; }
 
 /* ===== RULES ===== */
 .rules-box {
@@ -149,11 +178,28 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 .rule-tile.partial { background: var(--yellow); }
 .rule-tile.wrong   { background: var(--red); }
 
-.rules-note { font-size: 0.8rem; color: var(--text-muted); text-align: center; }
+/* High/Low Rule Badges */
+.rule-badge, .guess-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 5px 12px; border-radius: var(--r-sm);
+  font-family: var(--ff); font-size: 0.8rem; font-weight: 700;
+  min-width: 96px; text-align: center; flex-shrink: 0;
+}
+.rule-badge.higher, .guess-badge.higher {
+  background: rgba(59, 130, 246, 0.18); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35);
+}
+.rule-badge.lower, .guess-badge.lower {
+  background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35);
+}
+.rule-badge.equal, .guess-badge.equal {
+  background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.rules-note { font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 0.4rem; }
 
 /* ===== PANELS (lobby, secret, result) ===== */
 .panel {
-  width: 100%; max-width: 400px;
+  width: 100%; max-width: 420px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
@@ -191,11 +237,14 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 
 .room-label {
   font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.5rem;
+  letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.3rem;
 }
 .room-code {
   font-family: var(--ff-mono); font-size: 2.4rem; font-weight: 800;
-  letter-spacing: 10px; color: var(--text); margin-bottom: 1rem;
+  letter-spacing: 10px; color: var(--text); margin-bottom: 0.4rem;
+}
+.room-submode-tag {
+  font-size: 0.82rem; font-weight: 600; color: var(--green-light); margin-bottom: 1rem;
 }
 
 .waiting {
@@ -214,17 +263,44 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
   50% { opacity: 1; transform: scale(1.2); }
 }
 
-/* ===== DIGIT INPUTS ===== */
-.digit-inputs { display: flex; gap: 8px; justify-content: center; margin-bottom: 1.2rem; }
-.digit-input {
-  width: 58px; height: 62px; text-align: center;
-  font-family: var(--ff-mono); font-size: 1.8rem; font-weight: 700;
+/* ===== SINGLE HIDDEN INPUT CONTAINER ===== */
+.digit-input-container {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 1.2rem;
+  user-select: none;
+}
+.hidden-real-input {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 5;
+  font-size: 16px;
+  border: none;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+}
+.digit-display-tiles {
+  display: flex; gap: 8px; justify-content: center;
+}
+.digit-display-tile {
+  width: 54px; height: 58px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--ff-mono); font-size: 1.7rem; font-weight: 700;
   background: var(--bg); color: var(--text);
   border: 2px solid var(--border); border-radius: var(--r-sm);
-  outline: none; transition: border-color 0.15s;
-  caret-color: var(--green-light);
+  transition: border-color 0.15s, background-color 0.15s;
 }
-.digit-input:focus { border-color: var(--text-2); }
+.hidden-real-input:focus ~ .digit-display-tiles .digit-display-tile.active {
+  border-color: var(--green-light);
+}
+.hidden-real-input:focus ~ .digit-display-tiles .digit-display-tile.filled {
+  border-color: var(--border-light);
+}
+#guess-form .digit-input-container { margin-bottom: 0; }
+#guess-form .digit-display-tile { width: 50px; height: 54px; font-size: 1.4rem; }
 
 /* ===== GAME HEADER ===== */
 .game-bar {
@@ -240,6 +316,7 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
   background: var(--surface-2); color: var(--text-2);
   border: 1px solid var(--border);
 }
+.tag-mode { background: rgba(255,255,255,0.08); color: var(--text); }
 .tag-alt { color: var(--green-light); border-color: rgba(83,141,78,0.3); }
 
 /* ===== GAME LAYOUT ===== */
@@ -247,12 +324,12 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
   flex-direction: column; align-items: center;
   padding-top: 60px; padding-bottom: 160px;
 }
-#game-content { width: 100%; max-width: 800px; }
+#game-content { width: 100%; max-width: 840px; }
 
 .board-wrap { width: 100%; }
 .board-dual { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
 
-.board-section { padding: 1rem; }
+.board-section { padding: 0.5rem; }
 .board-label {
   font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
   letter-spacing: 2px; color: var(--text-muted);
@@ -260,7 +337,12 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 }
 
 /* ===== GUESS GRID ===== */
-.guess-grid { display: flex; flex-direction: column; gap: var(--gap); }
+.guess-grid {
+  display: flex; flex-direction: column; gap: var(--gap);
+  max-height: calc(100vh - 250px); overflow-y: auto; padding-right: 4px;
+}
+.guess-grid::-webkit-scrollbar { width: 4px; }
+.guess-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
 .guess-row {
   display: flex; gap: var(--gap); justify-content: center; align-items: center;
@@ -269,20 +351,29 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 .guess-row-num {
   width: 24px; text-align: right; margin-right: 4px;
   font-family: var(--ff-mono); font-size: 0.7rem; font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-muted); flex-shrink: 0;
 }
 
 .guess-cell {
   width: var(--tile); height: var(--tile);
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--ff-mono); font-size: 1.6rem; font-weight: 800;
+  font-family: var(--ff-mono); font-size: 1.5rem; font-weight: 800;
   color: #fff;
   border: 2px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--surface);
+  flex-shrink: 0;
 }
 
-/* Filled states */
+/* High-Low Row Styling */
+.guess-row-highlow .guess-cell {
+  background: var(--surface-2); border-color: var(--border-light); color: var(--text);
+}
+.guess-row-highlow.empty .guess-cell {
+  background: transparent; border-color: var(--border); color: transparent;
+}
+
+/* Wordle Filled states */
 .guess-cell.correct {
   background: var(--green); border-color: var(--green);
   animation: tileReveal 0.4s ease;
@@ -313,20 +404,18 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 /* ===== INPUT AREA ===== */
 #input-area {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
-  padding: 1rem 1.2rem 1.5rem;
+  padding: 1rem 1.2rem 1.4rem;
   background: var(--bg);
   border-top: 1px solid var(--border);
 }
 #guess-form {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
 }
-#guess-form .digit-inputs { margin-bottom: 0; }
-#guess-form .digit-input { width: 52px; height: 56px; font-size: 1.5rem; }
 
 #turn-indicator { text-align: center; padding: 0.8rem; }
 
 /* ===== RESULT ===== */
-.result-panel { max-width: 400px; }
+.result-panel { max-width: 420px; }
 .result-emoji { font-size: 3rem; margin-bottom: 0.8rem; }
 
 .secrets-box {
@@ -351,16 +440,17 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 /* ===== RESPONSIVE ===== */
 @media (max-width: 700px) {
   .board-dual { grid-template-columns: 1fr; gap: 1rem; }
-  :root { --tile: 52px; }
-  .digit-input { width: 50px; height: 54px; font-size: 1.4rem; }
-  #guess-form .digit-input { width: 46px; height: 50px; font-size: 1.3rem; }
+  :root { --tile: 46px; }
+  .digit-display-tile { width: 46px; height: 50px; font-size: 1.3rem; }
+  #guess-form .digit-display-tile { width: 44px; height: 48px; font-size: 1.2rem; }
   .brand-tile { width: 44px; height: 48px; font-size: 1.3rem; }
   h1 { font-size: 1.6rem; letter-spacing: 4px; }
   .panel { padding: 1.5rem; }
+  .rule-badge, .guess-badge { padding: 4px 6px; font-size: 0.75rem; min-width: 78px; }
 }
 
 @media (max-width: 380px) {
-  :root { --tile: 44px; --gap: 4px; }
-  .digit-input { width: 44px; height: 48px; font-size: 1.2rem; }
-  .digit-inputs { gap: 6px; }
+  :root { --tile: 40px; --gap: 4px; }
+  .digit-display-tile { width: 40px; height: 44px; font-size: 1.1rem; }
+  .digit-display-tiles { gap: 6px; }
 }

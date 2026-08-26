@@ -26,6 +26,19 @@
           <p class="tagline">Bẻ khóa mật mã 4 chữ số</p>
         </div>
 
+        <div class="submode-selector">
+          <button class="submode-btn active" data-mode="wordle">
+            <span class="mode-icon">🧩</span>
+            <span class="mode-title">Giải mã</span>
+            <span class="mode-desc">4 lượt • Xanh/Vàng/Đỏ</span>
+          </button>
+          <button class="submode-btn" data-mode="highlow">
+            <span class="mode-icon">📈</span>
+            <span class="mode-title">Lớn / Nhỏ</span>
+            <span class="mode-desc">15 lượt • Lớn hơn/Nhỏ hơn</span>
+          </button>
+        </div>
+
         <div class="menu-actions">
           <button id="btn-1p" class="btn btn-primary">Chơi đơn</button>
           <button id="btn-2p" class="btn btn-outline">Đối kháng</button>
@@ -33,7 +46,8 @@
 
         <div class="rules-box">
           <p class="rules-title">Cách chơi</p>
-          <div class="rules-list">
+          
+          <div class="rules-list" id="rules-wordle">
             <div class="rule-item">
               <span class="rule-tile correct">3</span>
               <span>Đúng số, đúng vị trí</span>
@@ -46,8 +60,24 @@
               <span class="rule-tile wrong">1</span>
               <span>Không có số này</span>
             </div>
+            <p class="rules-note">Bạn có 4 lượt để giải mã</p>
           </div>
-          <p class="rules-note">Bạn có 4 lượt để giải mã</p>
+
+          <div class="rules-list hidden" id="rules-highlow">
+            <div class="rule-item">
+              <span class="rule-badge higher">▲ Lớn hơn</span>
+              <span>Số bí mật lớn hơn số bạn nhập</span>
+            </div>
+            <div class="rule-item">
+              <span class="rule-badge lower">▼ Nhỏ hơn</span>
+              <span>Số bí mật nhỏ hơn số bạn nhập</span>
+            </div>
+            <div class="rule-item">
+              <span class="rule-badge equal">✓ Chính xác</span>
+              <span>Đoán trúng mật mã!</span>
+            </div>
+            <p class="rules-note">Bạn có 15 lượt để tìm số (Binary Search)</p>
+          </div>
         </div>
       </div>
     </div>
@@ -58,7 +88,20 @@
         <button class="link-back" id="btn-back-lobby">&larr; Quay lại</button>
         <h2>Đối kháng</h2>
         <p class="panel-desc">Tạo phòng hoặc tham gia phòng đã có</p>
+
         <div id="lobby-options">
+          <div class="lobby-submode-select">
+            <label class="lobby-label">Chọn luật chơi phòng:</label>
+            <div class="submode-selector submode-selector-sm">
+              <button class="submode-btn active" data-lobby-mode="wordle">
+                <span>🧩 Giải mã (4 lượt)</span>
+              </button>
+              <button class="submode-btn" data-lobby-mode="highlow">
+                <span>📈 Lớn / Nhỏ (15 lượt)</span>
+              </button>
+            </div>
+          </div>
+
           <button id="btn-create-room" class="btn btn-primary btn-full">Tạo phòng mới</button>
           <div class="or-divider"><span>hoặc</span></div>
           <div class="join-row">
@@ -69,6 +112,7 @@
         <div id="room-info" class="hidden">
           <p class="room-label">Mã phòng</p>
           <div class="room-code" id="room-code-display"></div>
+          <p class="room-submode-tag" id="room-submode-display"></p>
           <p class="waiting"><span class="dot-pulse"></span> Đang chờ đối thủ</p>
         </div>
         <p id="lobby-error" class="error-msg hidden"></p>
@@ -80,11 +124,14 @@
       <div class="panel">
         <h2>Đặt mật mã</h2>
         <p class="panel-desc">Chọn 4 chữ số cho đối thủ đoán</p>
-        <div class="digit-inputs" id="secret-inputs">
-          <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="0">
-          <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="1">
-          <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="2">
-          <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="3">
+        <div class="digit-input-container" id="secret-inputs">
+          <input type="text" class="hidden-real-input" maxlength="4" inputmode="numeric" pattern="\d*" autocomplete="off" spellcheck="false">
+          <div class="digit-display-tiles">
+            <div class="digit-display-tile" data-index="0"></div>
+            <div class="digit-display-tile" data-index="1"></div>
+            <div class="digit-display-tile" data-index="2"></div>
+            <div class="digit-display-tile" data-index="3"></div>
+          </div>
         </div>
         <button id="btn-set-secret" class="btn btn-primary btn-full">Xác nhận</button>
         <div id="waiting-secret" class="hidden">
@@ -99,6 +146,7 @@
       <header class="game-bar">
         <button class="link-back" id="btn-back-game">&larr; Thoát</button>
         <div class="game-tags">
+          <span id="submode-label" class="tag tag-mode"></span>
           <span id="mode-label" class="tag"></span>
           <span id="round-label" class="tag tag-alt"></span>
         </div>
@@ -127,11 +175,14 @@
           <p class="waiting"><span class="dot-pulse"></span> Chờ đối thủ đoán</p>
         </div>
         <div id="guess-form">
-          <div class="digit-inputs" id="guess-inputs">
-            <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="0">
-            <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="1">
-            <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="2">
-            <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="3">
+          <div class="digit-input-container" id="guess-inputs">
+            <input type="text" class="hidden-real-input" maxlength="4" inputmode="numeric" pattern="\d*" autocomplete="off" spellcheck="false">
+            <div class="digit-display-tiles">
+              <div class="digit-display-tile" data-index="0"></div>
+              <div class="digit-display-tile" data-index="1"></div>
+              <div class="digit-display-tile" data-index="2"></div>
+              <div class="digit-display-tile" data-index="3"></div>
+            </div>
           </div>
           <button id="btn-guess" class="btn btn-primary">Đoán</button>
         </div>

@@ -10,9 +10,9 @@ const io = new Server(server);
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- Game State ---
-const spGames = new Map();   // socketId -> { secret, attempts, max }
+const spGames = new Map();   // socketId -> { secret, attempts, max, subMode }
 const rooms = new Map();     // roomId -> roomState
-const playerRoom = new Map();// socketId -> roomId
+const playerRoom = new Map();     // socketId -> roomId
 
 function genRoomId() {
   const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -25,59 +25,80 @@ function genSecret() {
   return String(Math.floor(Math.random() * 10000)).padStart(4, '0');
 }
 
+// Wordle evaluation (3-state)
 function evaluate(guess, secret) {
   const result = [0, 0, 0, 0];
   const used = [false, false, false, false];
-  // Pass 1: exact match (green = 2)
   for (let i = 0; i < 4; i++) {
     if (guess[i] === secret[i]) { result[i] = 2; used[i] = true; }
   }
-  // Pass 2: wrong position (yellow = 1)
   for (let i = 0; i < 4; i++) {
     if (result[i] === 2) continue;
     for (let j = 0; j < 4; j++) {
       if (!used[j] && guess[i] === secret[j]) { result[i] = 1; used[j] = true; break; }
     }
   }
-  // 0 = absent (red)
   return result;
+}
+
+// High/Low evaluation
+function evaluateHighLow(guess, secret) {
+  const g = parseInt(guess, 10);
+  const s = parseInt(secret, 10);
+  if (g < s) return 'higher';  // secret is higher than guess (Lớn hơn)
+  if (g > s) return 'lower';   // secret is lower than guess (Nhỏ hơn)
+  return 'equal';              // exact match (Chính xác)
 }
 
 // --- Socket.IO ---
 io.on('connection', (socket) => {
 
   // ========== 1P ==========
-  socket.on('start-1p', () => {
-    spGames.set(socket.id, { secret: genSecret(), attempts: 0, max: 4 });
-    socket.emit('game-started-1p');
+  socket.on('start-1p', (payload) => {
+    const subMode = payload && payload.subMode === 'highlow' ? 'highlow' : 'wordle';
+    const max = subMode === 'highlow' ? 15 : 4;
+    spGames.set(socket.id, { secret: genSecret(), attempts: 0, max, subMode });
+    socket.emit('game-started-1p', { subMode, max });
   });
 
   socket.on('guess-1p', ({ guess }) => {
     const g = spGames.get(socket.id);
     if (!g || !/^\d{4}$/.test(guess)) return;
     g.attempts++;
-    const result = evaluate(guess, g.secret);
-    const won = result.every(r => r === 2);
+
+    let result, won;
+    if (g.subMode === 'highlow') {
+      result = evaluateHighLow(guess, g.secret);
+      won = (result === 'equal');
+    } else {
+      result = evaluate(guess, g.secret);
+      won = result.every(r => r === 2);
+    }
+
     const over = won || g.attempts >= g.max;
     socket.emit('guess-result-1p', {
       guess, result, won, gameOver: over,
       attemptsUsed: g.attempts,
+      maxAttempts: g.max,
+      subMode: g.subMode,
       secret: over ? g.secret : null
     });
     if (over) spGames.delete(socket.id);
   });
 
   // ========== 2P ==========
-  socket.on('create-room', () => {
+  socket.on('create-room', (payload) => {
     let id; do { id = genRoomId(); } while (rooms.has(id));
+    const subMode = payload && payload.subMode === 'highlow' ? 'highlow' : 'wordle';
+    const max = subMode === 'highlow' ? 15 : 4;
     const room = {
-      id, players: [socket.id], secrets: {}, guesses: {},
+      id, subMode, max, players: [socket.id], secrets: {}, guesses: {},
       turn: 0, round: 1, phase: 'waiting', wonFlags: {}
     };
     rooms.set(id, room);
     playerRoom.set(socket.id, id);
     socket.join(id);
-    socket.emit('room-created', { roomId: id });
+    socket.emit('room-created', { roomId: id, subMode, max });
   });
 
   socket.on('join-room', ({ roomId }) => {
@@ -91,9 +112,9 @@ io.on('connection', (socket) => {
     room.phase = 'setting';
     playerRoom.set(socket.id, rid);
     socket.join(rid);
-    io.to(room.players[0]).emit('your-info', { playerNumber: 1 });
-    io.to(room.players[1]).emit('your-info', { playerNumber: 2 });
-    io.to(rid).emit('room-ready');
+    io.to(room.players[0]).emit('your-info', { playerNumber: 1, subMode: room.subMode, max: room.max });
+    io.to(room.players[1]).emit('your-info', { playerNumber: 2, subMode: room.subMode, max: room.max });
+    io.to(rid).emit('room-ready', { subMode: room.subMode, max: room.max });
   });
 
   socket.on('set-secret', ({ secret }) => {
@@ -109,7 +130,7 @@ io.on('connection', (socket) => {
       room.guesses[room.players[0]] = [];
       room.guesses[room.players[1]] = [];
       room.turn = 0;
-      io.to(rid).emit('game-started-2p', { currentTurn: 1, round: 1 });
+      io.to(rid).emit('game-started-2p', { currentTurn: 1, round: 1, subMode: room.subMode, max: room.max });
     }
   });
 
@@ -121,17 +142,26 @@ io.on('connection', (socket) => {
 
     const oppIdx = 1 - room.turn;
     const oppId = room.players[oppIdx];
-    const result = evaluate(guess, room.secrets[oppId]);
-    const won = result.every(r => r === 2);
+
+    let result, won;
+    if (room.subMode === 'highlow') {
+      result = evaluateHighLow(guess, room.secrets[oppId]);
+      won = (result === 'equal');
+    } else {
+      result = evaluate(guess, room.secrets[oppId]);
+      won = result.every(r => r === 2);
+    }
+
     room.guesses[socket.id].push({ guess, result });
     if (won) room.wonFlags[socket.id] = true;
 
     const pNum = room.turn + 1;
 
     // Send result to both
-    room.players.forEach((pid, idx) => {
+    room.players.forEach((pid) => {
       io.to(pid).emit('guess-result-2p', {
         playerNumber: pNum, guess, result, won,
+        subMode: room.subMode, maxAttempts: room.max,
         isYourGuess: pid === socket.id,
         round: room.round
       });
@@ -146,7 +176,7 @@ io.on('connection', (socket) => {
       const p1w = !!room.wonFlags[room.players[0]];
       const p2w = !!room.wonFlags[room.players[1]];
 
-      if (p1w || p2w || room.round >= 4) {
+      if (p1w || p2w || room.round >= room.max) {
         room.phase = 'finished';
         const s = { player1: room.secrets[room.players[0]], player2: room.secrets[room.players[1]] };
 
