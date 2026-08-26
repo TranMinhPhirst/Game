@@ -206,7 +206,20 @@
   });
 
   // ===== LOBBY =====
-  $('#btn-back-lobby').addEventListener('click', () => { showScreen('menu-screen'); mode = null; });
+  $('#btn-back-lobby').addEventListener('click', () => {
+    socket.emit('cancel-random-match');
+    showScreen('menu-screen');
+    mode = null;
+  });
+
+  $('#btn-random-match').addEventListener('click', () => {
+    socket.emit('find-random-match', { subMode: selectedLobbySubMode });
+  });
+
+  $('#btn-cancel-match').addEventListener('click', () => {
+    socket.emit('cancel-random-match');
+  });
+
   $('#btn-create-room').addEventListener('click', () => {
     socket.emit('create-room', { subMode: selectedLobbySubMode });
   });
@@ -286,13 +299,26 @@
     }
   });
 
-  // ===== SOCKET: 2P =====
+  // ===== SOCKET: 2P & MATCHMAKING =====
+  socket.on('searching-match', () => {
+    hide($('#lobby-options'));
+    show($('#matchmaking-info'));
+    $('#matchmaking-submode-display').textContent = selectedLobbySubMode === 'highlow'
+      ? 'Luật: Lớn / Nhỏ (15 lượt)'
+      : 'Luật: Giải mã (4 lượt)';
+  });
+
+  socket.on('match-cancelled', () => {
+    show($('#lobby-options'));
+    hide($('#matchmaking-info'));
+  });
+
   socket.on('room-created', (data) => {
     roomId = data.roomId;
     activeSubMode = data.subMode;
     maxAttempts = data.max;
 
-    hide($('#lobby-options')); show($('#room-info'));
+    hide($('#lobby-options')); hide($('#matchmaking-info')); show($('#room-info'));
     $('#room-code-display').textContent = data.roomId;
     $('#room-submode-display').textContent = activeSubMode === 'highlow' ? 'Luật: Lớn / Nhỏ (15 lượt)' : 'Luật: Giải mã (4 lượt)';
   });
@@ -427,7 +453,7 @@
   function resetGame() {
     mode = null; playerNumber = null; myGuesses = []; oppGuesses = [];
     isMyTurn = true; currentRound = 1; roomId = null; gameActive = false; isSubmitting = false;
-    show($('#lobby-options')); hide($('#room-info'));
+    show($('#lobby-options')); hide($('#room-info')); hide($('#matchmaking-info'));
     $('#input-room-code').value = ''; hideError('#lobby-error');
   }
 
