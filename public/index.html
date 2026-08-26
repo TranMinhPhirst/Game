@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Trò chơi đoán số 4 chữ số - 1P & 2P Online">
+  <title>Đoán Số</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- MENU -->
+    <div id="menu-screen" class="screen active">
+      <div class="menu-wrap">
+        <div class="brand">
+          <div class="brand-tiles" id="brand-tiles">
+            <span class="brand-tile">0</span>
+            <span class="brand-tile">0</span>
+            <span class="brand-tile">0</span>
+            <span class="brand-tile">0</span>
+          </div>
+          <h1>ĐOÁN SỐ</h1>
+          <p class="tagline">Bẻ khóa mật mã 4 chữ số</p>
+        </div>
+
+        <div class="menu-actions">
+          <button id="btn-1p" class="btn btn-primary">Chơi đơn</button>
+          <button id="btn-2p" class="btn btn-outline">Đối kháng</button>
+        </div>
+
+        <div class="rules-box">
+          <p class="rules-title">Cách chơi</p>
+          <div class="rules-list">
+            <div class="rule-item">
+              <span class="rule-tile correct">3</span>
+              <span>Đúng số, đúng vị trí</span>
+            </div>
+            <div class="rule-item">
+              <span class="rule-tile partial">7</span>
+              <span>Đúng số, sai vị trí</span>
+            </div>
+            <div class="rule-item">
+              <span class="rule-tile wrong">1</span>
+              <span>Không có số này</span>
+            </div>
+          </div>
+          <p class="rules-note">Bạn có 4 lượt để giải mã</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOBBY -->
+    <div id="lobby-screen" class="screen">
+      <div class="panel">
+        <button class="link-back" id="btn-back-lobby">&larr; Quay lại</button>
+        <h2>Đối kháng</h2>
+        <p class="panel-desc">Tạo phòng hoặc tham gia phòng đã có</p>
+        <div id="lobby-options">
+          <button id="btn-create-room" class="btn btn-primary btn-full">Tạo phòng mới</button>
+          <div class="or-divider"><span>hoặc</span></div>
+          <div class="join-row">
+            <input type="text" id="input-room-code" class="input-code" placeholder="Mã phòng" maxlength="5" autocomplete="off" spellcheck="false">
+            <button id="btn-join-room" class="btn btn-primary">Tham gia</button>
+          </div>
+        </div>
+        <div id="room-info" class="hidden">
+          <p class="room-label">Mã phòng</p>
+          <div class="room-code" id="room-code-display"></div>
+          <p class="waiting"><span class="dot-pulse"></span> Đang chờ đối thủ</p>
+        </div>
+        <p id="lobby-error" class="error-msg hidden"></p>
+      </div>
+    </div>
+
+    <!-- SECRET -->
+    <div id="secret-screen" class="screen">
+      <div class="panel">
+        <h2>Đặt mật mã</h2>
+        <p class="panel-desc">Chọn 4 chữ số cho đối thủ đoán</p>
+        <div class="digit-inputs" id="secret-inputs">
+          <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="0">
+          <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="1">
+          <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="2">
+          <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="3">
+        </div>
+        <button id="btn-set-secret" class="btn btn-primary btn-full">Xác nhận</button>
+        <div id="waiting-secret" class="hidden">
+          <p class="waiting"><span class="dot-pulse"></span> Đang chờ đối thủ chọn số</p>
+        </div>
+        <p id="secret-error" class="error-msg hidden"></p>
+      </div>
+    </div>
+
+    <!-- GAME -->
+    <div id="game-screen" class="screen">
+      <header class="game-bar">
+        <button class="link-back" id="btn-back-game">&larr; Thoát</button>
+        <div class="game-tags">
+          <span id="mode-label" class="tag"></span>
+          <span id="round-label" class="tag tag-alt"></span>
+        </div>
+      </header>
+
+      <div id="game-content">
+        <div id="board-1p" class="board-wrap hidden">
+          <div class="board-section">
+            <div class="guess-grid" id="grid-1p"></div>
+          </div>
+        </div>
+        <div id="board-2p" class="board-wrap board-dual hidden">
+          <div class="board-section">
+            <p class="board-label">Bạn đoán</p>
+            <div class="guess-grid" id="grid-my"></div>
+          </div>
+          <div class="board-section">
+            <p class="board-label">Đối thủ đoán</p>
+            <div class="guess-grid" id="grid-opp"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="input-area">
+        <div id="turn-indicator" class="hidden">
+          <p class="waiting"><span class="dot-pulse"></span> Chờ đối thủ đoán</p>
+        </div>
+        <div id="guess-form">
+          <div class="digit-inputs" id="guess-inputs">
+            <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="0">
+            <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="1">
+            <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="2">
+            <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="3">
+          </div>
+          <button id="btn-guess" class="btn btn-primary">Đoán</button>
+        </div>
+        <p id="guess-error" class="error-msg hidden"></p>
+      </div>
+    </div>
+
+    <!-- RESULT -->
+    <div id="result-screen" class="screen">
+      <div class="panel result-panel">
+        <div id="result-icon" class="result-emoji"></div>
+        <h2 id="result-title"></h2>
+        <p id="result-message" class="panel-desc"></p>
+        <div id="result-secrets" class="secrets-box"></div>
+        <button id="btn-play-again" class="btn btn-primary btn-full">Chơi lại</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "guess-the-number",
+  "version": "1.0.0",
+  "description": "Trò chơi đoán số 4 chữ số - 1P & 2P",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "socket.io": "^4.7.5"
+  }
+}
