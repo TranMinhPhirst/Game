@@ -84,6 +84,10 @@ function evaluatePermutation(guess, secret) {
 // --- Helper to broadcast updated room info ---
 function broadcastRoomUpdate(room) {
   const playerList = room.players.map(p => ({ number: p.number, isHost: p.id === room.host }));
+  const canStart = room.subMode === 'perm5'
+    ? (room.players.length >= 2 && room.players.length <= 4)
+    : (room.players.length === 2);
+
   room.players.forEach(p => {
     io.to(p.id).emit('room-updated', {
       roomId: room.id,
@@ -92,7 +96,7 @@ function broadcastRoomUpdate(room) {
       playerNumber: p.number,
       isHost: p.id === room.host,
       players: playerList,
-      canStart: room.players.length >= 2
+      canStart
     });
   });
 }
@@ -242,9 +246,11 @@ io.on('connection', (socket) => {
     const rid = playerRoom.get(socket.id);
     const room = rid && rooms.get(rid);
     if (!room || room.host !== socket.id || room.phase !== 'waiting') return;
-    if (room.players.length < 2) return socket.emit('error-msg', { message: 'Cần ít nhất 2 người chơi để bắt đầu!' });
 
     if (room.subMode === 'perm5') {
+      if (room.players.length < 2 || room.players.length > 4) {
+        return socket.emit('error-msg', { message: 'Cần từ 2 đến 4 người chơi để bắt đầu!' });
+      }
       room.phase = 'playing';
       room.turn = 0;
       io.to(rid).emit('game-started-2p', {
@@ -256,6 +262,9 @@ io.on('connection', (socket) => {
         players: room.players.map(p => ({ number: p.number }))
       });
     } else {
+      if (room.players.length !== 2) {
+        return socket.emit('error-msg', { message: 'Chế độ này yêu cầu ĐÚNG 2 người chơi để bắt đầu!' });
+      }
       room.phase = 'setting';
       room.players.forEach(p => {
         io.to(p.id).emit('your-info', { playerNumber: p.number, subMode: room.subMode, max: room.max });
