@@ -12,6 +12,7 @@
   let isHost = false;
   let roomPlayers = [];
   let playerGuesses = {};       // pNum -> [{ guess, result }]
+  let sharedGuesses = [];       // [{ playerNumber, guess, result }] for shared board perm5
   let isMyTurn = true;
   let currentTurnNumber = 1;
   let currentRound = 1;
@@ -88,7 +89,6 @@
       });
     }
 
-    // Replace previous listener to avoid stacking
     hiddenInput.oninput = updateTiles;
 
     hiddenInput.onkeydown = (e) => {
@@ -120,9 +120,8 @@
   }
 
   // ===== RENDER ROWS & GRID =====
-  function createGuessRow(guess, result, rowNum, subMode) {
+  function createGuessRow(guess, result, rowNum, subMode, pNum = null) {
     const row = document.createElement('div');
-    const digitCount = subMode === 'perm5' ? 5 : 4;
 
     if (subMode === 'highlow') {
       row.className = 'guess-row guess-row-highlow';
@@ -131,6 +130,13 @@
       num.className = 'guess-row-num';
       num.textContent = rowNum;
       row.appendChild(num);
+
+      if (pNum) {
+        const pBadge = document.createElement('div');
+        pBadge.className = `player-tag-badge p${pNum}`;
+        pBadge.textContent = `P${pNum}`;
+        row.appendChild(pBadge);
+      }
 
       for (let i = 0; i < 4; i++) {
         const cell = document.createElement('div');
@@ -159,6 +165,13 @@
       num.textContent = rowNum;
       row.appendChild(num);
 
+      if (pNum) {
+        const pBadge = document.createElement('div');
+        pBadge.className = `player-tag-badge p${pNum}`;
+        pBadge.textContent = `P${pNum}`;
+        row.appendChild(pBadge);
+      }
+
       for (let i = 0; i < 5; i++) {
         const cell = document.createElement('div');
         cell.className = 'guess-cell';
@@ -183,6 +196,13 @@
       num.textContent = rowNum;
       row.appendChild(num);
 
+      if (pNum) {
+        const pBadge = document.createElement('div');
+        pBadge.className = `player-tag-badge p${pNum}`;
+        pBadge.textContent = `P${pNum}`;
+        row.appendChild(pBadge);
+      }
+
       const cls = { 2: 'correct', 1: 'partial', 0: 'wrong' };
       for (let i = 0; i < 4; i++) {
         const cell = document.createElement('div');
@@ -196,50 +216,22 @@
     return row;
   }
 
-  function renderEmptySlots(grid, used, total, subMode) {
-    const digitCount = subMode === 'perm5' ? 5 : 4;
-    for (let i = used; i < total; i++) {
-      const row = document.createElement('div');
-      const isAlt = subMode === 'highlow' || subMode === 'perm5';
-      row.className = isAlt ? 'guess-row guess-row-perm empty' : 'guess-row empty';
-
-      const num = document.createElement('div');
-      num.className = 'guess-row-num';
-      num.textContent = i + 1;
-      row.appendChild(num);
-
-      for (let j = 0; j < digitCount; j++) {
-        const cell = document.createElement('div');
-        cell.className = 'guess-cell';
-        row.appendChild(cell);
-      }
-
-      if (isAlt) {
-        const badge = document.createElement('div');
-        badge.className = 'guess-badge';
-        badge.style.opacity = '0';
-        badge.textContent = '—';
-        row.appendChild(badge);
-      }
-
-      grid.appendChild(row);
-    }
-  }
-
-  function renderGrid(gridEl, guesses, maxRows, subMode) {
+  function renderGrid(gridEl, guesses, maxRows, subMode, isShared = false) {
     if (!gridEl) return;
     gridEl.innerHTML = '';
-    guesses.forEach((g, i) => gridEl.appendChild(createGuessRow(g.guess, g.result, i + 1, subMode)));
-    renderEmptySlots(gridEl, guesses.length, maxRows, subMode);
 
-    const targetIdx = Math.min(guesses.length, maxRows - 1);
-    const targetRow = gridEl.children[targetIdx];
-    if (targetRow) {
-      targetRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    guesses.forEach((g, i) => {
+      gridEl.appendChild(createGuessRow(g.guess, g.result, i + 1, subMode, isShared ? g.playerNumber : null));
+    });
+
+    // Auto-scroll smoothly to newest guess row
+    if (guesses.length > 0) {
+      const lastRow = gridEl.lastElementChild;
+      if (lastRow) lastRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }
 
-  // ===== RENDER MULTI-PLAYER BOARDS =====
+  // ===== RENDER MULTI-PLAYER SEPARATE BOARDS (Wordle / HighLow) =====
   function buildMultiPlayerBoards(playersList, subMode, max) {
     const container = $('#multi-grid-container');
     container.innerHTML = '';
@@ -266,7 +258,7 @@
       sec.appendChild(grid);
 
       container.appendChild(sec);
-      renderGrid(grid, playerGuesses[pNum], max, subMode);
+      renderGrid(grid, playerGuesses[pNum], max, subMode, false);
     });
   }
 
@@ -350,7 +342,7 @@
   socket.on('game-started-1p', (data) => {
     playerGuesses[1] = []; gameActive = true; currentRound = 1; isSubmitting = false;
     activeSubMode = data.subMode || selectedSubMode;
-    maxAttempts = data.max || (activeSubMode === 'wordle' ? 4 : 15);
+    maxAttempts = data.max || (activeSubMode === 'wordle' ? 4 : 99);
 
     setupDigitInputs($('#guess-inputs'), activeSubMode === 'perm5');
 
@@ -362,7 +354,7 @@
     $('#mode-label').textContent = 'Chơi đơn';
     updateRoundLabel();
 
-    renderGrid($('#grid-1p'), playerGuesses[1], maxAttempts, activeSubMode);
+    renderGrid($('#grid-1p'), playerGuesses[1], maxAttempts, activeSubMode, false);
     hide($('#turn-indicator')); show($('#guess-form'));
     clearDigitInputs($('#guess-inputs'));
   });
@@ -374,7 +366,7 @@
     activeSubMode = data.subMode || activeSubMode;
 
     updateRoundLabel();
-    renderGrid($('#grid-1p'), playerGuesses[1], maxAttempts, activeSubMode);
+    renderGrid($('#grid-1p'), playerGuesses[1], maxAttempts, activeSubMode, false);
 
     if (data.gameOver) {
       gameActive = false;
@@ -390,7 +382,7 @@
   socket.on('searching-match', () => {
     hide($('#lobby-options'));
     show($('#matchmaking-info'));
-    const modeTitles = { wordle: 'Giải mã (4 lượt)', highlow: 'Lớn / Nhỏ (15 lượt)', perm5: 'Hoán vị 5 số (15 lượt)' };
+    const modeTitles = { wordle: 'Giải mã (4 lượt)', highlow: 'Lớn / Nhỏ (15 lượt)', perm5: 'Hoán vị 5 số (Bảng chung)' };
     $('#matchmaking-submode-display').textContent = `Luật: ${modeTitles[selectedLobbySubMode]}`;
   });
 
@@ -410,10 +402,9 @@
     hide($('#lobby-options')); hide($('#matchmaking-info')); show($('#room-info'));
     $('#room-code-display').textContent = data.roomId;
 
-    const modeTitles = { wordle: 'Luật: Giải mã (4 lượt)', highlow: 'Luật: Lớn / Nhỏ (15 lượt)', perm5: 'Luật: Hoán vị 5 số (15 lượt)' };
+    const modeTitles = { wordle: 'Luật: Giải mã (4 lượt)', highlow: 'Luật: Lớn / Nhỏ (15 lượt)', perm5: 'Luật: Hoán vị 5 số (Bảng chung)' };
     $('#room-submode-display').textContent = modeTitles[activeSubMode];
 
-    // Render players list in room
     const listBox = $('#players-list-box');
     listBox.innerHTML = '';
     roomPlayers.forEach(p => {
@@ -463,6 +454,7 @@
 
   socket.on('game-started-2p', (data) => {
     playerGuesses = {};
+    sharedGuesses = [];
     gameActive = true; isSubmitting = false;
     currentRound = data.round || 1;
     currentTurnNumber = data.currentTurn || 1;
@@ -474,26 +466,37 @@
     setupDigitInputs($('#guess-inputs'), activeSubMode === 'perm5');
 
     showScreen('game-screen');
-    hide($('#board-1p')); show($('#board-multi'));
+
+    const isSharedBoard = (activeSubMode === 'perm5');
+    if (isSharedBoard) {
+      show($('#board-1p')); hide($('#board-multi'));
+      renderGrid($('#grid-1p'), sharedGuesses, maxAttempts, activeSubMode, true);
+    } else {
+      hide($('#board-1p')); show($('#board-multi'));
+      buildMultiPlayerBoards(roomPlayers, activeSubMode, maxAttempts);
+    }
 
     const modeTitles = { wordle: 'Giải mã', highlow: 'Lớn / Nhỏ', perm5: 'Hoán vị 5 số' };
     $('#submode-label').textContent = modeTitles[activeSubMode];
     $('#mode-label').textContent = `Người chơi ${playerNumber}`;
     updateRoundLabel();
 
-    buildMultiPlayerBoards(roomPlayers, activeSubMode, maxAttempts);
     updateTurnUI();
     clearDigitInputs($('#guess-inputs'));
   });
 
   socket.on('guess-broadcast-2p', (data) => {
     const pNum = data.playerNumber;
-    playerGuesses[pNum] = playerGuesses[pNum] || [];
-    playerGuesses[pNum].push({ guess: data.guess, result: data.result });
-
-    const gridEl = $(`#grid-p${pNum}`);
-    if (gridEl) {
-      renderGrid(gridEl, playerGuesses[pNum], maxAttempts, activeSubMode);
+    if (activeSubMode === 'perm5') {
+      sharedGuesses.push({ playerNumber: pNum, guess: data.guess, result: data.result });
+      renderGrid($('#grid-1p'), sharedGuesses, maxAttempts, activeSubMode, true);
+    } else {
+      playerGuesses[pNum] = playerGuesses[pNum] || [];
+      playerGuesses[pNum].push({ guess: data.guess, result: data.result });
+      const gridEl = $(`#grid-p${pNum}`);
+      if (gridEl) {
+        renderGrid(gridEl, playerGuesses[pNum], maxAttempts, activeSubMode, false);
+      }
     }
   });
 
@@ -525,14 +528,14 @@
     if (data.result === 'win') {
       type = 'win';
       msg = data.winnerNumber === playerNumber
-        ? 'Bạn đã chiến thắng tuyệt đối!'
-        : `Người chơi ${data.winnerNumber} đã tìm ra đáp án trước!`;
+        ? 'Bạn đã tìm đúng dãy hoán vị đầu tiên! XIN CHÚC MỪNG!'
+        : `Người chơi ${data.winnerNumber} đã tìm đúng dãy hoán vị trước!`;
     } else if (data.result === 'lose') {
       type = 'lose';
       msg = `Người chơi ${data.winnerNumber} đã đoán chính xác trước bạn!`;
     } else {
       type = 'draw';
-      msg = 'Hết lượt! Không ai đoán được mật mã!';
+      msg = 'Kết thúc trò chơi!';
     }
     setTimeout(() => showResult(type, msg, secrets), 700);
   });
@@ -547,16 +550,20 @@
 
   // ===== HELPERS =====
   function updateRoundLabel() {
-    let maxUsed = 0;
-    Object.keys(playerGuesses).forEach(k => {
-      maxUsed = Math.max(maxUsed, playerGuesses[k].length);
-    });
-    const left = maxAttempts - maxUsed;
-    $('#round-label').textContent = `Còn ${Math.max(0, left)} lượt`;
+    if (activeSubMode === 'perm5') {
+      const totalCount = mode === '1p' ? (playerGuesses[1] ? playerGuesses[1].length : 0) : sharedGuesses.length;
+      $('#round-label').textContent = `Lượt ${totalCount} • Không giới hạn`;
+    } else {
+      let maxUsed = 0;
+      Object.keys(playerGuesses).forEach(k => {
+        maxUsed = Math.max(maxUsed, playerGuesses[k].length);
+      });
+      const left = maxAttempts - maxUsed;
+      $('#round-label').textContent = `Còn ${Math.max(0, left)} lượt`;
+    }
   }
 
   function updateTurnUI() {
-    // Highlight active turn column label
     $$('.board-label').forEach(l => l.classList.remove('active-turn'));
     const activeLbl = $(`#board-label-p${currentTurnNumber}`);
     if (activeLbl) activeLbl.classList.add('active-turn');
@@ -600,7 +607,7 @@
   function hideError(sel) { const el = $(sel); if (el) hide(el); }
 
   function resetGame() {
-    mode = null; playerNumber = null; isHost = false; roomPlayers = []; playerGuesses = {};
+    mode = null; playerNumber = null; isHost = false; roomPlayers = []; playerGuesses = {}; sharedGuesses = [];
     isMyTurn = true; currentTurnNumber = 1; currentRound = 1; roomId = null; gameActive = false; isSubmitting = false;
     show($('#lobby-options')); hide($('#room-info')); hide($('#matchmaking-info'));
     $('#input-room-code').value = ''; hideError('#lobby-error');

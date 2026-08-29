@@ -105,7 +105,7 @@ io.on('connection', (socket) => {
     const subMode = payload && ['highlow', 'perm5'].includes(payload.subMode) ? payload.subMode : 'wordle';
     let secret, max;
     if (subMode === 'highlow') { secret = genSecret(); max = 15; }
-    else if (subMode === 'perm5') { secret = genPermutation5(); max = 15; }
+    else if (subMode === 'perm5') { secret = genPermutation5(); max = 99; } // 99 turns for 1P perm5
     else { secret = genSecret(); max = 4; }
 
     spGames.set(socket.id, { secret, attempts: 0, max, subMode });
@@ -156,11 +156,11 @@ io.on('connection', (socket) => {
       const oppId = matchQueues[subMode].shift();
 
       let id; do { id = genRoomId(); } while (rooms.has(id));
-      const max = subMode === 'highlow' ? 15 : (subMode === 'perm5' ? 15 : 4);
+      const max = subMode === 'highlow' ? 15 : (subMode === 'perm5' ? 999 : 4);
       const room = {
         id, subMode, max, host: oppId,
         players: [{ id: oppId, number: 1 }, { id: socket.id, number: 2 }],
-        secrets: {}, guesses: { [oppId]: [], [socket.id]: [] },
+        secrets: {}, guesses: { [oppId]: [], [socket.id]: [] }, sharedGuesses: [],
         turn: 0, round: 1, phase: subMode === 'perm5' ? 'playing' : 'setting', wonFlags: {}
       };
       if (subMode === 'perm5') room.secret = genPermutation5();
@@ -200,12 +200,12 @@ io.on('connection', (socket) => {
     removeFromQueue(socket.id);
     let id; do { id = genRoomId(); } while (rooms.has(id));
     const subMode = payload && ['highlow', 'perm5'].includes(payload.subMode) ? payload.subMode : 'wordle';
-    const max = subMode === 'highlow' ? 15 : (subMode === 'perm5' ? 15 : 4);
+    const max = subMode === 'highlow' ? 15 : (subMode === 'perm5' ? 999 : 4);
 
     const room = {
       id, subMode, max, host: socket.id,
       players: [{ id: socket.id, number: 1 }],
-      secrets: {}, guesses: { [socket.id]: [] },
+      secrets: {}, guesses: { [socket.id]: [] }, sharedGuesses: [],
       turn: 0, round: 1, phase: 'waiting', wonFlags: {}
     };
     if (subMode === 'perm5') room.secret = genPermutation5();
@@ -310,7 +310,12 @@ io.on('connection', (socket) => {
       won = result.every(r => r === 2);
     }
 
-    room.guesses[socket.id].push({ guess, result });
+    if (isPerm) {
+      room.sharedGuesses.push({ playerNumber: currentP.number, guess, result });
+    } else {
+      room.guesses[socket.id].push({ guess, result });
+    }
+
     if (won) room.wonFlags[socket.id] = true;
 
     // Broadcast guess to everyone in the room
@@ -319,7 +324,8 @@ io.on('connection', (socket) => {
       guess,
       result,
       subMode: room.subMode,
-      maxAttempts: room.max
+      maxAttempts: room.max,
+      totalSharedGuesses: isPerm ? room.sharedGuesses.length : undefined
     });
 
     if (won) {
@@ -349,16 +355,13 @@ io.on('connection', (socket) => {
     room.turn = (room.turn + 1) % room.players.length;
     if (room.turn === 0) room.round++;
 
-    if (room.round > room.max) {
+    // For non-perm5 modes, check max attempts limit
+    if (room.subMode !== 'perm5' && room.round > room.max) {
       room.phase = 'finished';
       const secrets = {};
-      if (room.subMode === 'perm5') {
-        secrets['secret'] = room.secret;
-      } else {
-        room.players.forEach(p => {
-          secrets[`player${p.number}`] = room.secrets[p.id];
-        });
-      }
+      room.players.forEach(p => {
+        secrets[`player${p.number}`] = room.secrets[p.id];
+      });
       io.to(rid).emit('game-over-2p', { result: 'both-lose', secrets, subMode: room.subMode });
       setTimeout(() => rooms.delete(rid), 60000);
       return;

@@ -206,6 +206,18 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 
 .rules-note { font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 0.4rem; }
 
+/* ===== PLAYER TAG BADGES FOR SHARED ROWS ===== */
+.player-tag-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 4px 8px; border-radius: var(--r-sm);
+  font-family: var(--ff-mono); font-size: 0.75rem; font-weight: 800;
+  min-width: 38px; flex-shrink: 0;
+}
+.player-tag-badge.p1 { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+.player-tag-badge.p2 { background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); }
+.player-tag-badge.p3 { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+.player-tag-badge.p4 { background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4); }
+
 /* ===== PANELS (lobby, secret, result) ===== */
 .panel {
   width: 100%; max-width: 440px;
@@ -487,6 +499,6 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
   .multi-grid-container.cols-2, .multi-grid-container.cols-3, .multi-grid-container.cols-4 {
     grid-template-columns: 1fr; gap: 0.8rem;
   }
-  :root { --tile: 38px; --gap: 4px; }
+  :root { --tile: 36px; --gap: 4px; }
   .digit-display-tile { width: 36px; height: 42px; font-size: 1rem; }
 }

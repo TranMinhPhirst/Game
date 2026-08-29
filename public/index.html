@@ -40,7 +40,7 @@
           <button class="submode-btn" data-mode="perm5">
             <span class="mode-icon">🎲</span>
             <span class="mode-title">Hoán vị 5 số</span>
-            <span class="mode-desc">15 lượt • Dãy 1-5 • Match</span>
+            <span class="mode-desc">Bảng chung • Không giới hạn</span>
           </button>
         </div>
 
@@ -95,9 +95,9 @@
             </div>
             <div class="rule-item">
               <span class="rule-badge equal">✓ 5 Correct</span>
-              <span>Tìm đúng dãy hoán vị 5 số để chiến thắng!</span>
+              <span>Ai tìm đúng dãy hoán vị 5 số đầu tiên là THẮNG!</span>
             </div>
-            <p class="rules-note">Ví dụ: Target 24513, Guess 22222 -> 1 Correct</p>
+            <p class="rules-note">Không giới hạn lượt • Tất cả 2-4 người dùng CHUNG 1 bảng đoán</p>
           </div>
         </div>
       </div>
@@ -121,7 +121,7 @@
                 <span>📈 Lớn/Nhỏ (15 lượt)</span>
               </button>
               <button class="submode-btn" data-lobby-mode="perm5">
-                <span>🎲 Hoán vị 5 số</span>
+                <span>🎲 Hoán vị (Bảng chung)</span>
               </button>
             </div>
           </div>
@@ -195,12 +195,14 @@
       </header>
 
       <div id="game-content">
+        <!-- 1P Board or Shared Permutation 5 Board -->
         <div id="board-1p" class="board-wrap hidden">
           <div class="board-section">
             <div class="guess-grid" id="grid-1p"></div>
           </div>
         </div>
         
+        <!-- Multi-player Separate Columns Board (Wordle / HighLow) -->
         <div id="board-multi" class="board-wrap hidden">
           <div class="multi-grid-container" id="multi-grid-container">
             <!-- Dynamic 2 to 4 player grid columns -->
