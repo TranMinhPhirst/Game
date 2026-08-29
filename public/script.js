@@ -224,14 +224,13 @@
       gridEl.appendChild(createGuessRow(g.guess, g.result, i + 1, subMode, isShared ? g.playerNumber : null));
     });
 
-    // Auto-scroll smoothly to newest guess row
     if (guesses.length > 0) {
       const lastRow = gridEl.lastElementChild;
       if (lastRow) lastRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }
 
-  // ===== RENDER MULTI-PLAYER SEPARATE BOARDS (Wordle / HighLow) =====
+  // ===== RENDER MULTI-PLAYER SEPARATE BOARDS (Wordle / HighLow - 2 Players) =====
   function buildMultiPlayerBoards(playersList, subMode, max) {
     const container = $('#multi-grid-container');
     container.innerHTML = '';
@@ -382,7 +381,7 @@
   socket.on('searching-match', () => {
     hide($('#lobby-options'));
     show($('#matchmaking-info'));
-    const modeTitles = { wordle: 'Giải mã (4 lượt)', highlow: 'Lớn / Nhỏ (15 lượt)', perm5: 'Hoán vị 5 số (Bảng chung)' };
+    const modeTitles = { wordle: 'Giải mã (2 người - 4 lượt)', highlow: 'Lớn / Nhỏ (2 người - 15 lượt)', perm5: 'Hoán vị 5 số (2-4 người - Bảng chung)' };
     $('#matchmaking-submode-display').textContent = `Luật: ${modeTitles[selectedLobbySubMode]}`;
   });
 
@@ -402,7 +401,7 @@
     hide($('#lobby-options')); hide($('#matchmaking-info')); show($('#room-info'));
     $('#room-code-display').textContent = data.roomId;
 
-    const modeTitles = { wordle: 'Luật: Giải mã (4 lượt)', highlow: 'Luật: Lớn / Nhỏ (15 lượt)', perm5: 'Luật: Hoán vị 5 số (Bảng chung)' };
+    const modeTitles = { wordle: 'Luật: Giải mã (2 người - 4 lượt)', highlow: 'Luật: Lớn / Nhỏ (2 người - 15 lượt)', perm5: 'Luật: Hoán vị 5 số (2-4 người - Bảng chung)' };
     $('#room-submode-display').textContent = modeTitles[activeSubMode];
 
     const listBox = $('#players-list-box');
@@ -527,15 +526,18 @@
     let type, msg;
     if (data.result === 'win') {
       type = 'win';
-      msg = data.winnerNumber === playerNumber
-        ? 'Bạn đã tìm đúng dãy hoán vị đầu tiên! XIN CHÚC MỪNG!'
-        : `Người chơi ${data.winnerNumber} đã tìm đúng dãy hoán vị trước!`;
+      msg = 'Chúc mừng! Bạn đã chiến thắng trận đấu!';
+    } else if (data.result === 'draw') {
+      type = 'draw';
+      msg = 'HÒA! Cả 2 người chơi đều đoán đúng mật mã trong cùng một lượt!';
     } else if (data.result === 'lose') {
       type = 'lose';
-      msg = `Người chơi ${data.winnerNumber} đã đoán chính xác trước bạn!`;
+      msg = data.winnerNumber
+        ? `Người chơi ${data.winnerNumber} đã đoán chính xác và giành chiến thắng!`
+        : 'Bạn đã thất bại trong trận đấu này!';
     } else {
       type = 'draw';
-      msg = 'Kết thúc trò chơi!';
+      msg = 'Hết lượt! Cả hai người chơi đều không tìm ra mật mã!';
     }
     setTimeout(() => showResult(type, msg, secrets), 700);
   });
@@ -554,12 +556,8 @@
       const totalCount = mode === '1p' ? (playerGuesses[1] ? playerGuesses[1].length : 0) : sharedGuesses.length;
       $('#round-label').textContent = `Lượt ${totalCount} • Không giới hạn`;
     } else {
-      let maxUsed = 0;
-      Object.keys(playerGuesses).forEach(k => {
-        maxUsed = Math.max(maxUsed, playerGuesses[k].length);
-      });
-      const left = maxAttempts - maxUsed;
-      $('#round-label').textContent = `Còn ${Math.max(0, left)} lượt`;
+      const left = maxAttempts - currentRound + 1;
+      $('#round-label').textContent = `Lượt ${currentRound} / ${maxAttempts}`;
     }
   }
 
@@ -583,7 +581,7 @@
   function showResult(type, message, secrets) {
     showScreen('result-screen');
     const icons = { win: '✓', lose: '✗', draw: '=' };
-    const titles = { win: 'Chiến thắng', lose: 'Thua cuộc', draw: 'Kết thúc' };
+    const titles = { win: 'Chiến thắng', lose: 'Thua cuộc', draw: 'Hòa trận' };
     $('#result-icon').textContent = icons[type] || '—';
     $('#result-icon').className = 'result-emoji result-' + type;
     $('#result-title').textContent = titles[type] || 'Kết thúc';

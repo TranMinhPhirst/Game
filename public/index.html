@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Trò chơi đoán số 4 chữ số & Hoán vị 5 số - 1P & 2-4P Online">
+  <meta name="description" content="Trò chơi đoán số 4 chữ số & Hoán vị 5 số - 1P & Multi-Player Online">
   <title>Đoán Số</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
@@ -30,23 +30,23 @@
           <button class="submode-btn active" data-mode="wordle">
             <span class="mode-icon">🧩</span>
             <span class="mode-title">Giải mã</span>
-            <span class="mode-desc">4 lượt • Xanh/Vàng/Đỏ</span>
+            <span class="mode-desc">2 người • 4 lượt</span>
           </button>
           <button class="submode-btn" data-mode="highlow">
             <span class="mode-icon">📈</span>
             <span class="mode-title">Lớn / Nhỏ</span>
-            <span class="mode-desc">15 lượt • Lớn hơn/Nhỏ hơn</span>
+            <span class="mode-desc">2 người • 15 lượt</span>
           </button>
           <button class="submode-btn" data-mode="perm5">
             <span class="mode-icon">🎲</span>
             <span class="mode-title">Hoán vị 5 số</span>
-            <span class="mode-desc">Bảng chung • Không giới hạn</span>
+            <span class="mode-desc">2-4 người • Bảng chung</span>
           </button>
         </div>
 
         <div class="menu-actions">
           <button id="btn-1p" class="btn btn-primary">Chơi đơn</button>
-          <button id="btn-2p" class="btn btn-outline">Đối kháng (2-4 người)</button>
+          <button id="btn-2p" class="btn btn-outline">Đối kháng</button>
         </div>
 
         <div class="rules-box">
@@ -65,7 +65,7 @@
               <span class="rule-tile wrong">1</span>
               <span>Không có số này</span>
             </div>
-            <p class="rules-note">Bạn có 4 lượt để giải mã</p>
+            <p class="rules-note">2 người chơi (4 lượt) • Kết quả tính ở CUỐI LƯỢT (Đoán trúng cùng lượt = HÒA)</p>
           </div>
 
           <div class="rules-list hidden" id="rules-highlow">
@@ -81,7 +81,7 @@
               <span class="rule-badge equal">✓ Chính xác</span>
               <span>Đoán trúng mật mã!</span>
             </div>
-            <p class="rules-note">Bạn có 15 lượt để tìm số (Binary Search)</p>
+            <p class="rules-note">2 người chơi (15 lượt) • Kết quả tính ở CUỐI LƯỢT (Đoán trúng cùng lượt = HÒA)</p>
           </div>
 
           <div class="rules-list hidden" id="rules-perm5">
@@ -95,9 +95,9 @@
             </div>
             <div class="rule-item">
               <span class="rule-badge equal">✓ 5 Correct</span>
-              <span>Ai tìm đúng dãy hoán vị 5 số đầu tiên là THẮNG!</span>
+              <span>Người ĐẦU TIÊN đoán đúng 5 Correct là THẮNG NGAY!</span>
             </div>
-            <p class="rules-note">Không giới hạn lượt • Tất cả 2-4 người dùng CHUNG 1 bảng đoán</p>
+            <p class="rules-note">2 - 4 người dùng CHUNG 1 bảng đoán • Ai đoán đúng trước là THẮNG</p>
           </div>
         </div>
       </div>
@@ -107,7 +107,7 @@
     <div id="lobby-screen" class="screen">
       <div class="panel">
         <button class="link-back" id="btn-back-lobby">&larr; Quay lại</button>
-        <h2>Đối kháng (2 - 4 Người)</h2>
+        <h2>Đối kháng Online</h2>
         <p class="panel-desc">Tạo phòng hoặc ghép ngẫu nhiên</p>
 
         <div id="lobby-options">
@@ -115,13 +115,13 @@
             <label class="lobby-label">Chọn luật chơi:</label>
             <div class="submode-selector submode-selector-sm submode-grid-3">
               <button class="submode-btn active" data-lobby-mode="wordle">
-                <span>🧩 Giải mã (4 lượt)</span>
+                <span>🧩 Giải mã (2 người)</span>
               </button>
               <button class="submode-btn" data-lobby-mode="highlow">
-                <span>📈 Lớn/Nhỏ (15 lượt)</span>
+                <span>📈 Lớn/Nhỏ (2 người)</span>
               </button>
               <button class="submode-btn" data-lobby-mode="perm5">
-                <span>🎲 Hoán vị (Bảng chung)</span>
+                <span>🎲 Hoán vị (2-4 người)</span>
               </button>
             </div>
           </div>
@@ -202,10 +202,10 @@
           </div>
         </div>
         
-        <!-- Multi-player Separate Columns Board (Wordle / HighLow) -->
+        <!-- Multi-player Separate Columns Board (Wordle / HighLow - 2 Players) -->
         <div id="board-multi" class="board-wrap hidden">
           <div class="multi-grid-container" id="multi-grid-container">
-            <!-- Dynamic 2 to 4 player grid columns -->
+            <!-- Dynamic 2-player grid columns -->
           </div>
         </div>
       </div>

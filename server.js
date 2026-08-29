@@ -105,7 +105,7 @@ io.on('connection', (socket) => {
     const subMode = payload && ['highlow', 'perm5'].includes(payload.subMode) ? payload.subMode : 'wordle';
     let secret, max;
     if (subMode === 'highlow') { secret = genSecret(); max = 15; }
-    else if (subMode === 'perm5') { secret = genPermutation5(); max = 99; } // 99 turns for 1P perm5
+    else if (subMode === 'perm5') { secret = genPermutation5(); max = 99; }
     else { secret = genSecret(); max = 4; }
 
     spGames.set(socket.id, { secret, attempts: 0, max, subMode });
@@ -222,7 +222,11 @@ io.on('connection', (socket) => {
     const rid = (roomId || '').toUpperCase().trim();
     const room = rooms.get(rid);
     if (!room) return socket.emit('error-msg', { message: 'Không tìm thấy phòng!' });
-    if (room.players.length >= 4) return socket.emit('error-msg', { message: 'Phòng đã đầy (tối đa 4 người)!' });
+
+    const maxCapacity = room.subMode === 'perm5' ? 4 : 2;
+    if (room.players.length >= maxCapacity) {
+      return socket.emit('error-msg', { message: `Phòng đã đầy (chế độ này tối đa ${maxCapacity} người chơi)!` });
+    }
     if (room.phase !== 'waiting') return socket.emit('error-msg', { message: 'Trò chơi đã bắt đầu!' });
 
     const pNum = room.players.length + 1;
@@ -324,51 +328,98 @@ io.on('connection', (socket) => {
       guess,
       result,
       subMode: room.subMode,
-      maxAttempts: room.max,
-      totalSharedGuesses: isPerm ? room.sharedGuesses.length : undefined
+      maxAttempts: room.max
     });
 
-    if (won) {
-      room.phase = 'finished';
-      const secrets = {};
-      if (room.subMode === 'perm5') {
-        secrets['secret'] = room.secret;
-      } else {
+    // === CASE 1: PERMUTATION 5 (SUDDEN DEATH / FIRST-TO-WIN) ===
+    if (isPerm) {
+      if (won) {
+        room.phase = 'finished';
+        const secrets = { secret: room.secret };
         room.players.forEach(p => {
-          secrets[`player${p.number}`] = room.secrets[p.id];
+          io.to(p.id).emit('game-over-2p', {
+            result: p.id === socket.id ? 'win' : 'lose',
+            winnerNumber: currentP.number,
+            secrets,
+            subMode: room.subMode
+          });
         });
+        setTimeout(() => rooms.delete(rid), 60000);
+        return;
       }
 
-      room.players.forEach(p => {
-        io.to(p.id).emit('game-over-2p', {
-          result: p.id === socket.id ? 'win' : 'lose',
-          winnerNumber: currentP.number,
-          secrets,
-          subMode: room.subMode
+      // Next turn
+      room.turn = (room.turn + 1) % room.players.length;
+      if (room.turn === 0) room.round++;
+      const nextP = room.players[room.turn];
+      io.to(rid).emit('turn-update', { currentTurn: nextP.number, round: room.round });
+      return;
+    }
+
+    // === CASE 2: WORDLE & HIGH/LOW (2 PLAYERS, EVALUATED AT END OF ROUND) ===
+    const p0 = room.players[0];
+    const p1 = room.players[1];
+
+    if (room.turn === 0) {
+      // End of P1 turn -> Pass turn to P2
+      room.turn = 1;
+      io.to(rid).emit('turn-update', { currentTurn: p1.number, round: room.round });
+    } else {
+      // End of P2 turn -> END OF ROUND EVALUATION!
+      const p0Won = !!room.wonFlags[p0.id];
+      const p1Won = !!room.wonFlags[p1.id];
+
+      if (p0Won || p1Won) {
+        room.phase = 'finished';
+        const secrets = {
+          player1: room.secrets[p0.id],
+          player2: room.secrets[p1.id]
+        };
+
+        let outcomeType = 'win';
+        let winnerNum = null;
+        if (p0Won && p1Won) {
+          outcomeType = 'draw';
+        } else if (p0Won) {
+          winnerNum = 1;
+        } else {
+          winnerNum = 2;
+        }
+
+        room.players.forEach(p => {
+          let userRes = 'lose';
+          if (outcomeType === 'draw') userRes = 'draw';
+          else if (p.number === winnerNum) userRes = 'win';
+
+          io.to(p.id).emit('game-over-2p', {
+            result: userRes,
+            winnerNumber: winnerNum,
+            secrets,
+            subMode: room.subMode
+          });
         });
-      });
-      setTimeout(() => rooms.delete(rid), 60000);
-      return;
+
+        setTimeout(() => rooms.delete(rid), 60000);
+        return;
+      }
+
+      // Neither won in this round, check max attempts
+      if (room.round >= room.max) {
+        room.phase = 'finished';
+        const secrets = {
+          player1: room.secrets[p0.id],
+          player2: room.secrets[p1.id]
+        };
+        io.to(rid).emit('game-over-2p', { result: 'both-lose', secrets, subMode: room.subMode });
+        setTimeout(() => rooms.delete(rid), 60000);
+        return;
+      }
+
+      // Next round!
+      room.round++;
+      room.turn = 0;
+      io.to(rid).emit('turn-update', { currentTurn: p0.number, round: room.round });
     }
-
-    // Advance turn: turn = (turn + 1) % players.length
-    room.turn = (room.turn + 1) % room.players.length;
-    if (room.turn === 0) room.round++;
-
-    // For non-perm5 modes, check max attempts limit
-    if (room.subMode !== 'perm5' && room.round > room.max) {
-      room.phase = 'finished';
-      const secrets = {};
-      room.players.forEach(p => {
-        secrets[`player${p.number}`] = room.secrets[p.id];
-      });
-      io.to(rid).emit('game-over-2p', { result: 'both-lose', secrets, subMode: room.subMode });
-      setTimeout(() => rooms.delete(rid), 60000);
-      return;
-    }
-
-    const nextP = room.players[room.turn];
-    io.to(rid).emit('turn-update', { currentTurn: nextP.number, round: room.round });
   });
 
   // ========== Disconnect ==========
