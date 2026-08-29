@@ -23,7 +23,7 @@
 
   --accent:      #e8e6e3;
 
-  --tile:        58px;
+  --tile:        54px;
   --gap:         6px;
   --r-sm:        4px;
   --r-md:        8px;
@@ -78,7 +78,7 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 
 /* ===== BRAND / MENU ===== */
 .menu-wrap {
-  width: 100%; max-width: 420px; text-align: center;
+  width: 100%; max-width: 480px; text-align: center;
 }
 
 .brand { margin-bottom: 1.8rem; }
@@ -101,9 +101,12 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
   display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
   margin-bottom: 1.2rem;
 }
+.submode-grid-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
 .submode-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 10px 8px; border-radius: var(--r-md);
+  padding: 10px 6px; border-radius: var(--r-md);
   background: var(--surface); border: 1.5px solid var(--border);
   color: var(--text-2); cursor: pointer; transition: all 0.15s ease;
   font-family: var(--ff); text-align: center;
@@ -113,12 +116,12 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
   background: var(--surface-2); border-color: var(--accent); color: #fff;
 }
 .mode-icon { font-size: 1.2rem; margin-bottom: 2px; }
-.mode-title { font-size: 0.88rem; font-weight: 700; }
-.mode-desc { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+.mode-title { font-size: 0.85rem; font-weight: 700; }
+.mode-desc { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; }
 .submode-btn.active .mode-desc { color: var(--text-2); }
 
 .submode-selector-sm { margin-bottom: 0.5rem; }
-.submode-selector-sm .submode-btn { padding: 8px; font-size: 0.82rem; font-weight: 600; }
+.submode-selector-sm .submode-btn { padding: 8px 4px; font-size: 0.78rem; font-weight: 600; }
 .lobby-submode-select { margin-bottom: 1.2rem; text-align: left; }
 .lobby-label {
   font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
@@ -178,7 +181,7 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 .rule-tile.partial { background: var(--yellow); }
 .rule-tile.wrong   { background: var(--red); }
 
-/* High/Low Rule Badges */
+/* High/Low & Permutation Rule Badges */
 .rule-badge, .guess-badge {
   display: inline-flex; align-items: center; justify-content: center;
   padding: 5px 12px; border-radius: var(--r-sm);
@@ -194,12 +197,18 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 .rule-badge.equal, .guess-badge.equal {
   background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35);
 }
+.rule-badge.perm-range {
+  background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35);
+}
+.rule-badge.perm-correct, .guess-badge.perm-correct {
+  background: rgba(234, 179, 8, 0.18); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.35);
+}
 
 .rules-note { font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 0.4rem; }
 
 /* ===== PANELS (lobby, secret, result) ===== */
 .panel {
-  width: 100%; max-width: 420px;
+  width: 100%; max-width: 440px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
@@ -215,7 +224,7 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 }
 .link-back:hover { color: var(--text); }
 
-/* ===== LOBBY ===== */
+/* ===== LOBBY & PLAYERS LIST ===== */
 .or-divider {
   display: flex; align-items: center; gap: 12px;
   margin: 1rem 0; color: var(--text-muted); font-size: 0.8rem;
@@ -247,12 +256,27 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
   font-size: 0.82rem; font-weight: 600; color: var(--green-light); margin-bottom: 1rem;
 }
 
+/* Multi-Player Lobby Badge List */
+.players-list-box {
+  display: flex; flex-direction: column; gap: 8px;
+  margin: 1rem 0; text-align: left;
+}
+.player-badge-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); font-size: 0.88rem; font-weight: 600;
+}
+.player-badge-item.is-me { border-color: var(--green-light); color: var(--green-light); }
+.player-host-tag {
+  font-size: 0.7rem; background: rgba(234, 179, 8, 0.2); color: #facc15;
+  padding: 2px 6px; border-radius: 4px; font-weight: 700;
+}
+
 .waiting {
   color: var(--text-2); font-size: 0.88rem;
   display: flex; align-items: center; justify-content: center; gap: 10px;
 }
 
-/* Dot pulse spinner */
 .dot-pulse {
   width: 6px; height: 6px; background: var(--text-2);
   border-radius: 50%; display: inline-block;
@@ -286,9 +310,9 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
   display: flex; gap: 8px; justify-content: center;
 }
 .digit-display-tile {
-  width: 54px; height: 58px;
+  width: 50px; height: 56px;
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--ff-mono); font-size: 1.7rem; font-weight: 700;
+  font-family: var(--ff-mono); font-size: 1.6rem; font-weight: 700;
   background: var(--bg); color: var(--text);
   border: 2px solid var(--border); border-radius: var(--r-sm);
   transition: border-color 0.15s, background-color 0.15s;
@@ -300,7 +324,7 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
   border-color: var(--border-light);
 }
 #guess-form .digit-input-container { margin-bottom: 0; }
-#guess-form .digit-display-tile { width: 50px; height: 54px; font-size: 1.4rem; }
+#guess-form .digit-display-tile { width: 46px; height: 50px; font-size: 1.3rem; }
 
 /* ===== GAME HEADER ===== */
 .game-bar {
@@ -319,22 +343,29 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 .tag-mode { background: rgba(255,255,255,0.08); color: var(--text); }
 .tag-alt { color: var(--green-light); border-color: rgba(83,141,78,0.3); }
 
-/* ===== GAME LAYOUT ===== */
+/* ===== GAME LAYOUT & MULTI-GRID ===== */
 #game-screen.active {
   flex-direction: column; align-items: center;
   padding-top: 60px; padding-bottom: 160px;
 }
-#game-content { width: 100%; max-width: 840px; }
+#game-content { width: 100%; max-width: 960px; }
 
 .board-wrap { width: 100%; }
-.board-dual { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
 
-.board-section { padding: 0.5rem; }
+.multi-grid-container {
+  display: grid; gap: 1.5rem; width: 100%;
+}
+.multi-grid-container.cols-2 { grid-template-columns: 1fr 1fr; }
+.multi-grid-container.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.multi-grid-container.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+.board-section { padding: 0.4rem; }
 .board-label {
   font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
   letter-spacing: 2px; color: var(--text-muted);
   margin-bottom: 0.8rem; text-align: center;
 }
+.board-label.active-turn { color: var(--green-light); font-weight: 800; }
 
 /* ===== GUESS GRID ===== */
 .guess-grid {
@@ -349,7 +380,7 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 }
 
 .guess-row-num {
-  width: 24px; text-align: right; margin-right: 4px;
+  width: 22px; text-align: right; margin-right: 2px;
   font-family: var(--ff-mono); font-size: 0.7rem; font-weight: 500;
   color: var(--text-muted); flex-shrink: 0;
 }
@@ -357,7 +388,7 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 .guess-cell {
   width: var(--tile); height: var(--tile);
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--ff-mono); font-size: 1.5rem; font-weight: 800;
+  font-family: var(--ff-mono); font-size: 1.4rem; font-weight: 800;
   color: #fff;
   border: 2px solid var(--border);
   border-radius: var(--r-sm);
@@ -365,11 +396,11 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
   flex-shrink: 0;
 }
 
-/* High-Low Row Styling */
-.guess-row-highlow .guess-cell {
+/* High-Low & Permutation Row Styling */
+.guess-row-highlow .guess-cell, .guess-row-perm .guess-cell {
   background: var(--surface-2); border-color: var(--border-light); color: var(--text);
 }
-.guess-row-highlow.empty .guess-cell {
+.guess-row-highlow.empty .guess-cell, .guess-row-perm.empty .guess-cell {
   background: transparent; border-color: var(--border); color: transparent;
 }
 
@@ -438,19 +469,24 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 .hidden { display: none !important; }
 
 /* ===== RESPONSIVE ===== */
-@media (max-width: 700px) {
-  .board-dual { grid-template-columns: 1fr; gap: 1rem; }
-  :root { --tile: 46px; }
-  .digit-display-tile { width: 46px; height: 50px; font-size: 1.3rem; }
-  #guess-form .digit-display-tile { width: 44px; height: 48px; font-size: 1.2rem; }
-  .brand-tile { width: 44px; height: 48px; font-size: 1.3rem; }
-  h1 { font-size: 1.6rem; letter-spacing: 4px; }
+@media (max-width: 768px) {
+  .multi-grid-container.cols-3, .multi-grid-container.cols-4 {
+    grid-template-columns: 1fr 1fr; gap: 1rem;
+  }
+  :root { --tile: 42px; }
+  .digit-display-tile { width: 42px; height: 46px; font-size: 1.2rem; }
+  #guess-form .digit-display-tile { width: 40px; height: 44px; font-size: 1.1rem; }
+  .brand-tile { width: 42px; height: 46px; font-size: 1.2rem; }
+  h1 { font-size: 1.5rem; letter-spacing: 4px; }
   .panel { padding: 1.5rem; }
-  .rule-badge, .guess-badge { padding: 4px 6px; font-size: 0.75rem; min-width: 78px; }
+  .submode-grid-3 { grid-template-columns: 1fr; }
+  .rule-badge, .guess-badge { padding: 4px 6px; font-size: 0.75rem; min-width: 76px; }
 }
 
-@media (max-width: 380px) {
-  :root { --tile: 40px; --gap: 4px; }
-  .digit-display-tile { width: 40px; height: 44px; font-size: 1.1rem; }
-  .digit-display-tiles { gap: 6px; }
+@media (max-width: 480px) {
+  .multi-grid-container.cols-2, .multi-grid-container.cols-3, .multi-grid-container.cols-4 {
+    grid-template-columns: 1fr; gap: 0.8rem;
+  }
+  :root { --tile: 38px; --gap: 4px; }
+  .digit-display-tile { width: 36px; height: 42px; font-size: 1rem; }
 }

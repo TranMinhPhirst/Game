@@ -2,16 +2,18 @@
   const socket = io();
 
   // ===== STATE =====
-  let selectedSubMode = 'wordle';       // 'wordle' | 'highlow' (Menu 1P)
-  let selectedLobbySubMode = 'wordle';  // 'wordle' | 'highlow' (Lobby 2P)
+  let selectedSubMode = 'wordle';       // 'wordle' | 'highlow' | 'perm5' (Menu 1P)
+  let selectedLobbySubMode = 'wordle';  // 'wordle' | 'highlow' | 'perm5' (Lobby 2P)
   let activeSubMode = 'wordle';         // Current active game subMode
   let maxAttempts = 4;
 
   let mode = null;              // '1p' | '2p'
   let playerNumber = null;
-  let myGuesses = [];
-  let oppGuesses = [];
+  let isHost = false;
+  let roomPlayers = [];
+  let playerGuesses = {};       // pNum -> [{ guess, result }]
   let isMyTurn = true;
+  let currentTurnNumber = 1;
   let currentRound = 1;
   let roomId = null;
   let gameActive = false;
@@ -35,13 +37,13 @@
       btn.classList.add('active');
       selectedSubMode = btn.dataset.mode;
 
-      if (selectedSubMode === 'highlow') {
-        hide($('#rules-wordle'));
-        show($('#rules-highlow'));
-      } else {
-        show($('#rules-wordle'));
-        hide($('#rules-highlow'));
-      }
+      hide($('#rules-wordle'));
+      hide($('#rules-highlow'));
+      hide($('#rules-perm5'));
+
+      if (selectedSubMode === 'highlow') show($('#rules-highlow'));
+      else if (selectedSubMode === 'perm5') show($('#rules-perm5'));
+      else show($('#rules-wordle'));
     });
   });
 
@@ -55,35 +57,51 @@
   });
 
   // ===== SINGLE HIDDEN DIGIT INPUT CONTROLLER =====
-  function setupDigitInputs(container) {
+  function setupDigitInputs(container, isPerm5 = false) {
     const hiddenInput = container.querySelector('.hidden-real-input');
     const tiles = container.querySelectorAll('.digit-display-tile');
+    const tile5 = container.querySelector('[data-index="4"]');
+
     if (!hiddenInput || !tiles.length) return;
 
+    const targetLength = isPerm5 ? 5 : 4;
+    hiddenInput.maxLength = targetLength;
+
+    if (tile5) {
+      if (isPerm5) show(tile5); else hide(tile5);
+    }
+
     function updateTiles() {
-      let val = hiddenInput.value.replace(/\D/g, '').slice(0, 4);
+      let val = hiddenInput.value;
+      if (isPerm5) {
+        val = val.replace(/[^1-5]/g, '').slice(0, 5);
+      } else {
+        val = val.replace(/\D/g, '').slice(0, 4);
+      }
       hiddenInput.value = val;
 
       tiles.forEach((tile, i) => {
+        if (i >= targetLength) return;
         tile.textContent = val[i] || '';
         tile.classList.toggle('filled', !!val[i]);
-        tile.classList.toggle('active', i === val.length || (i === 3 && val.length === 4));
+        tile.classList.toggle('active', i === val.length || (i === targetLength - 1 && val.length === targetLength));
       });
     }
 
-    hiddenInput.addEventListener('input', updateTiles);
+    // Replace previous listener to avoid stacking
+    hiddenInput.oninput = updateTiles;
 
-    hiddenInput.addEventListener('keydown', (e) => {
+    hiddenInput.onkeydown = (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
         e.stopPropagation();
         const form = hiddenInput.closest('#guess-form') || hiddenInput.closest('.panel');
         const btn = form?.querySelector('.btn-primary');
-        if (btn) btn.click();
+        if (btn && !btn.disabled) btn.click();
       }
-    });
+    };
 
-    container.addEventListener('click', () => hiddenInput.focus());
+    container.onclick = () => hiddenInput.focus();
     updateTiles();
   }
 
@@ -104,6 +122,7 @@
   // ===== RENDER ROWS & GRID =====
   function createGuessRow(guess, result, rowNum, subMode) {
     const row = document.createElement('div');
+    const digitCount = subMode === 'perm5' ? 5 : 4;
 
     if (subMode === 'highlow') {
       row.className = 'guess-row guess-row-highlow';
@@ -132,6 +151,30 @@
         badge.textContent = '✓ Chính xác';
       }
       row.appendChild(badge);
+    } else if (subMode === 'perm5') {
+      row.className = 'guess-row guess-row-perm';
+
+      const num = document.createElement('div');
+      num.className = 'guess-row-num';
+      num.textContent = rowNum;
+      row.appendChild(num);
+
+      for (let i = 0; i < 5; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'guess-cell';
+        cell.textContent = guess[i];
+        row.appendChild(cell);
+      }
+
+      const badge = document.createElement('div');
+      if (result === 5) {
+        badge.className = 'guess-badge equal';
+        badge.textContent = '✓ 5 Correct';
+      } else {
+        badge.className = 'guess-badge perm-correct';
+        badge.textContent = `${result} Correct`;
+      }
+      row.appendChild(badge);
     } else {
       row.className = 'guess-row';
 
@@ -154,22 +197,24 @@
   }
 
   function renderEmptySlots(grid, used, total, subMode) {
+    const digitCount = subMode === 'perm5' ? 5 : 4;
     for (let i = used; i < total; i++) {
       const row = document.createElement('div');
-      row.className = subMode === 'highlow' ? 'guess-row guess-row-highlow empty' : 'guess-row empty';
+      const isAlt = subMode === 'highlow' || subMode === 'perm5';
+      row.className = isAlt ? 'guess-row guess-row-perm empty' : 'guess-row empty';
 
       const num = document.createElement('div');
       num.className = 'guess-row-num';
       num.textContent = i + 1;
       row.appendChild(num);
 
-      for (let j = 0; j < 4; j++) {
+      for (let j = 0; j < digitCount; j++) {
         const cell = document.createElement('div');
         cell.className = 'guess-cell';
         row.appendChild(cell);
       }
 
-      if (subMode === 'highlow') {
+      if (isAlt) {
         const badge = document.createElement('div');
         badge.className = 'guess-badge';
         badge.style.opacity = '0';
@@ -182,16 +227,47 @@
   }
 
   function renderGrid(gridEl, guesses, maxRows, subMode) {
+    if (!gridEl) return;
     gridEl.innerHTML = '';
     guesses.forEach((g, i) => gridEl.appendChild(createGuessRow(g.guess, g.result, i + 1, subMode)));
     renderEmptySlots(gridEl, guesses.length, maxRows, subMode);
 
-    // Scroll smoothly to the current active row
     const targetIdx = Math.min(guesses.length, maxRows - 1);
     const targetRow = gridEl.children[targetIdx];
     if (targetRow) {
       targetRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
+  }
+
+  // ===== RENDER MULTI-PLAYER BOARDS =====
+  function buildMultiPlayerBoards(playersList, subMode, max) {
+    const container = $('#multi-grid-container');
+    container.innerHTML = '';
+    const count = playersList.length;
+    container.className = `multi-grid-container cols-${count}`;
+
+    playersList.forEach(p => {
+      const pNum = p.number;
+      playerGuesses[pNum] = playerGuesses[pNum] || [];
+
+      const sec = document.createElement('div');
+      sec.className = 'board-section';
+      sec.id = `board-sec-p${pNum}`;
+
+      const lbl = document.createElement('p');
+      lbl.className = 'board-label';
+      lbl.id = `board-label-p${pNum}`;
+      lbl.textContent = (pNum === playerNumber) ? `Bạn (Người chơi ${pNum})` : `Người chơi ${pNum}`;
+      sec.appendChild(lbl);
+
+      const grid = document.createElement('div');
+      grid.className = 'guess-grid';
+      grid.id = `grid-p${pNum}`;
+      sec.appendChild(grid);
+
+      container.appendChild(sec);
+      renderGrid(grid, playerGuesses[pNum], max, subMode);
+    });
   }
 
   // ===== MENU =====
@@ -229,12 +305,16 @@
     if (code) socket.emit('join-room', { roomId: code });
   });
 
+  $('#btn-start-host').addEventListener('click', () => {
+    socket.emit('start-game-host');
+  });
+
   $('#input-room-code').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') $('#btn-join-room').click();
   });
 
   // ===== SECRET =====
-  setupDigitInputs($('#secret-inputs'));
+  setupDigitInputs($('#secret-inputs'), false);
   $('#btn-set-secret').addEventListener('click', () => {
     const secret = getDigitValue($('#secret-inputs'));
     if (!/^\d{4}$/.test(secret)) return showError('#secret-error', 'Nhập đủ 4 chữ số');
@@ -242,11 +322,14 @@
   });
 
   // ===== GAME =====
-  setupDigitInputs($('#guess-inputs'));
   $('#btn-guess').addEventListener('click', () => {
     if (!gameActive || isSubmitting) return;
     const guess = getDigitValue($('#guess-inputs'));
-    if (!/^\d{4}$/.test(guess)) return showError('#guess-error', 'Nhập đủ 4 chữ số');
+    const isPerm = activeSubMode === 'perm5';
+    const regex = isPerm ? /^[1-5]{5}$/ : /^\d{4}$/;
+    if (!regex.test(guess)) {
+      return showError('#guess-error', isPerm ? 'Nhập đủ 5 chữ số từ 1 đến 5' : 'Nhập đủ 4 chữ số');
+    }
     hideError('#guess-error');
 
     isSubmitting = true;
@@ -265,47 +348,50 @@
 
   // ===== SOCKET: 1P =====
   socket.on('game-started-1p', (data) => {
-    myGuesses = []; gameActive = true; currentRound = 1; isSubmitting = false;
+    playerGuesses[1] = []; gameActive = true; currentRound = 1; isSubmitting = false;
     activeSubMode = data.subMode || selectedSubMode;
-    maxAttempts = data.max || (activeSubMode === 'highlow' ? 15 : 4);
+    maxAttempts = data.max || (activeSubMode === 'wordle' ? 4 : 15);
+
+    setupDigitInputs($('#guess-inputs'), activeSubMode === 'perm5');
 
     showScreen('game-screen');
-    show($('#board-1p')); hide($('#board-2p'));
+    show($('#board-1p')); hide($('#board-multi'));
 
-    $('#submode-label').textContent = activeSubMode === 'highlow' ? 'Lớn / Nhỏ' : 'Giải mã';
+    const modeTitles = { wordle: 'Giải mã', highlow: 'Lớn / Nhỏ', perm5: 'Hoán vị 5 số' };
+    $('#submode-label').textContent = modeTitles[activeSubMode] || 'Giải mã';
     $('#mode-label').textContent = 'Chơi đơn';
     updateRoundLabel();
-    renderGrid($('#grid-1p'), myGuesses, maxAttempts, activeSubMode);
+
+    renderGrid($('#grid-1p'), playerGuesses[1], maxAttempts, activeSubMode);
     hide($('#turn-indicator')); show($('#guess-form'));
     clearDigitInputs($('#guess-inputs'));
   });
 
   socket.on('guess-result-1p', (data) => {
-    myGuesses.push({ guess: data.guess, result: data.result });
+    playerGuesses[1].push({ guess: data.guess, result: data.result });
     currentRound = data.attemptsUsed;
     maxAttempts = data.maxAttempts || maxAttempts;
     activeSubMode = data.subMode || activeSubMode;
 
     updateRoundLabel();
-    renderGrid($('#grid-1p'), myGuesses, maxAttempts, activeSubMode);
+    renderGrid($('#grid-1p'), playerGuesses[1], maxAttempts, activeSubMode);
 
     if (data.gameOver) {
       gameActive = false;
       setTimeout(() => showResult(
         data.won ? 'win' : 'lose',
         data.won ? `Giải mã thành công sau ${data.attemptsUsed} lượt!` : 'Hết lượt! Không giải được mật mã.',
-        [{ label: 'Mật mã', number: data.secret }]
+        [{ label: 'Mật mã bí mật', number: data.secret }]
       ), 700);
     }
   });
 
-  // ===== SOCKET: 2P & MATCHMAKING =====
+  // ===== SOCKET: 2P - 4P MATCHMAKING & LOBBY =====
   socket.on('searching-match', () => {
     hide($('#lobby-options'));
     show($('#matchmaking-info'));
-    $('#matchmaking-submode-display').textContent = selectedLobbySubMode === 'highlow'
-      ? 'Luật: Lớn / Nhỏ (15 lượt)'
-      : 'Luật: Giải mã (4 lượt)';
+    const modeTitles = { wordle: 'Giải mã (4 lượt)', highlow: 'Lớn / Nhỏ (15 lượt)', perm5: 'Hoán vị 5 số (15 lượt)' };
+    $('#matchmaking-submode-display').textContent = `Luật: ${modeTitles[selectedLobbySubMode]}`;
   });
 
   socket.on('match-cancelled', () => {
@@ -313,14 +399,44 @@
     hide($('#matchmaking-info'));
   });
 
-  socket.on('room-created', (data) => {
+  socket.on('room-updated', (data) => {
     roomId = data.roomId;
     activeSubMode = data.subMode;
     maxAttempts = data.max;
+    playerNumber = data.playerNumber;
+    isHost = data.isHost;
+    roomPlayers = data.players || [];
 
     hide($('#lobby-options')); hide($('#matchmaking-info')); show($('#room-info'));
     $('#room-code-display').textContent = data.roomId;
-    $('#room-submode-display').textContent = activeSubMode === 'highlow' ? 'Luật: Lớn / Nhỏ (15 lượt)' : 'Luật: Giải mã (4 lượt)';
+
+    const modeTitles = { wordle: 'Luật: Giải mã (4 lượt)', highlow: 'Luật: Lớn / Nhỏ (15 lượt)', perm5: 'Luật: Hoán vị 5 số (15 lượt)' };
+    $('#room-submode-display').textContent = modeTitles[activeSubMode];
+
+    // Render players list in room
+    const listBox = $('#players-list-box');
+    listBox.innerHTML = '';
+    roomPlayers.forEach(p => {
+      const div = document.createElement('div');
+      div.className = `player-badge-item ${p.number === playerNumber ? 'is-me' : ''}`;
+      div.innerHTML = `
+        <span>Người chơi ${p.number} ${p.number === playerNumber ? '(Bạn)' : ''}</span>
+        ${p.isHost ? '<span class="player-host-tag">Chủ phòng</span>' : ''}
+      `;
+      listBox.appendChild(div);
+    });
+
+    if (isHost) {
+      show($('#host-controls'));
+      hide($('#waiting-host-start'));
+      $('#btn-start-host').disabled = !data.canStart;
+      $('#btn-start-host').textContent = data.canStart
+        ? `🚀 Bắt đầu game (${roomPlayers.length} người)`
+        : `Cần ít nhất 2 người để bắt đầu`;
+    } else {
+      hide($('#host-controls'));
+      show($('#waiting-host-start'));
+    }
   });
 
   socket.on('your-info', (data) => {
@@ -346,61 +462,84 @@
   socket.on('secret-set', () => { hide($('#btn-set-secret')); show($('#waiting-secret')); });
 
   socket.on('game-started-2p', (data) => {
-    myGuesses = []; oppGuesses = []; gameActive = true; isSubmitting = false;
-    currentRound = data.round;
+    playerGuesses = {};
+    gameActive = true; isSubmitting = false;
+    currentRound = data.round || 1;
+    currentTurnNumber = data.currentTurn || 1;
     activeSubMode = data.subMode || activeSubMode;
     maxAttempts = data.max || maxAttempts;
-    isMyTurn = (playerNumber === data.currentTurn);
+    roomPlayers = data.players || [{ number: 1 }, { number: 2 }];
+    isMyTurn = (playerNumber === currentTurnNumber);
+
+    setupDigitInputs($('#guess-inputs'), activeSubMode === 'perm5');
 
     showScreen('game-screen');
-    hide($('#board-1p')); show($('#board-2p'));
+    hide($('#board-1p')); show($('#board-multi'));
 
-    $('#submode-label').textContent = activeSubMode === 'highlow' ? 'Lớn / Nhỏ' : 'Giải mã';
+    const modeTitles = { wordle: 'Giải mã', highlow: 'Lớn / Nhỏ', perm5: 'Hoán vị 5 số' };
+    $('#submode-label').textContent = modeTitles[activeSubMode];
     $('#mode-label').textContent = `Người chơi ${playerNumber}`;
     updateRoundLabel();
 
-    renderGrid($('#grid-my'), myGuesses, maxAttempts, activeSubMode);
-    renderGrid($('#grid-opp'), oppGuesses, maxAttempts, activeSubMode);
-    updateTurnUI(); clearDigitInputs($('#guess-inputs'));
+    buildMultiPlayerBoards(roomPlayers, activeSubMode, maxAttempts);
+    updateTurnUI();
+    clearDigitInputs($('#guess-inputs'));
   });
 
-  socket.on('guess-result-2p', (data) => {
-    activeSubMode = data.subMode || activeSubMode;
-    maxAttempts = data.maxAttempts || maxAttempts;
+  socket.on('guess-broadcast-2p', (data) => {
+    const pNum = data.playerNumber;
+    playerGuesses[pNum] = playerGuesses[pNum] || [];
+    playerGuesses[pNum].push({ guess: data.guess, result: data.result });
 
-    if (data.isYourGuess) {
-      myGuesses.push({ guess: data.guess, result: data.result });
-      renderGrid($('#grid-my'), myGuesses, maxAttempts, activeSubMode);
-    } else {
-      oppGuesses.push({ guess: data.guess, result: data.result });
-      renderGrid($('#grid-opp'), oppGuesses, maxAttempts, activeSubMode);
+    const gridEl = $(`#grid-p${pNum}`);
+    if (gridEl) {
+      renderGrid(gridEl, playerGuesses[pNum], maxAttempts, activeSubMode);
     }
   });
 
   socket.on('turn-update', (data) => {
     currentRound = data.round;
-    isMyTurn = (playerNumber === data.currentTurn);
-    updateRoundLabel(); updateTurnUI();
+    currentTurnNumber = data.currentTurn;
+    isMyTurn = (playerNumber === currentTurnNumber);
+
+    updateRoundLabel();
+    updateTurnUI();
     if (isMyTurn) clearDigitInputs($('#guess-inputs'));
   });
 
   socket.on('game-over-2p', (data) => {
     gameActive = false;
-    const secrets = [
-      { label: 'Số của Người chơi 1', number: data.secrets.player1 },
-      { label: 'Số của Người chơi 2', number: data.secrets.player2 }
-    ];
+    const secrets = [];
+    if (data.secrets) {
+      if (data.secrets.secret) {
+        secrets.push({ label: 'Mật mã hoán vị Target', number: data.secrets.secret });
+      } else {
+        Object.keys(data.secrets).forEach(k => {
+          const num = k.replace('player', '');
+          secrets.push({ label: `Số của Người chơi ${num}`, number: data.secrets[k] });
+        });
+      }
+    }
+
     let type, msg;
-    if (data.result === 'draw') { type = 'draw'; msg = 'Cả hai cùng tìm ra mật mã! Hòa!'; }
-    else if (data.result === 'win') { type = 'win'; msg = 'Bạn đã chiến thắng!'; }
-    else if (data.result === 'lose') { type = 'lose'; msg = 'Đối thủ tìm ra mật mã trước bạn!'; }
-    else { type = 'draw'; msg = 'Hết lượt! Không ai giải được!'; }
+    if (data.result === 'win') {
+      type = 'win';
+      msg = data.winnerNumber === playerNumber
+        ? 'Bạn đã chiến thắng tuyệt đối!'
+        : `Người chơi ${data.winnerNumber} đã tìm ra đáp án trước!`;
+    } else if (data.result === 'lose') {
+      type = 'lose';
+      msg = `Người chơi ${data.winnerNumber} đã đoán chính xác trước bạn!`;
+    } else {
+      type = 'draw';
+      msg = 'Hết lượt! Không ai đoán được mật mã!';
+    }
     setTimeout(() => showResult(type, msg, secrets), 700);
   });
 
   socket.on('opponent-disconnected', () => {
     gameActive = false;
-    alert('Đối thủ đã ngắt kết nối!');
+    alert('Có người chơi đã ngắt kết nối!');
     resetGame(); showScreen('menu-screen');
   });
 
@@ -408,11 +547,20 @@
 
   // ===== HELPERS =====
   function updateRoundLabel() {
-    const left = maxAttempts - (mode === '1p' ? myGuesses.length : Math.max(myGuesses.length, oppGuesses.length));
+    let maxUsed = 0;
+    Object.keys(playerGuesses).forEach(k => {
+      maxUsed = Math.max(maxUsed, playerGuesses[k].length);
+    });
+    const left = maxAttempts - maxUsed;
     $('#round-label').textContent = `Còn ${Math.max(0, left)} lượt`;
   }
 
   function updateTurnUI() {
+    // Highlight active turn column label
+    $$('.board-label').forEach(l => l.classList.remove('active-turn'));
+    const activeLbl = $(`#board-label-p${currentTurnNumber}`);
+    if (activeLbl) activeLbl.classList.add('active-turn');
+
     if (isMyTurn) {
       hide($('#turn-indicator')); show($('#guess-form'));
       setTimeout(() => {
@@ -421,13 +569,14 @@
       }, 100);
     } else {
       show($('#turn-indicator')); hide($('#guess-form'));
+      $('#turn-indicator-text').textContent = `Lượt của Người chơi ${currentTurnNumber}`;
     }
   }
 
   function showResult(type, message, secrets) {
     showScreen('result-screen');
     const icons = { win: '✓', lose: '✗', draw: '=' };
-    const titles = { win: 'Chiến thắng', lose: 'Thua cuộc', draw: 'Hòa' };
+    const titles = { win: 'Chiến thắng', lose: 'Thua cuộc', draw: 'Kết thúc' };
     $('#result-icon').textContent = icons[type] || '—';
     $('#result-icon').className = 'result-emoji result-' + type;
     $('#result-title').textContent = titles[type] || 'Kết thúc';
@@ -451,8 +600,8 @@
   function hideError(sel) { const el = $(sel); if (el) hide(el); }
 
   function resetGame() {
-    mode = null; playerNumber = null; myGuesses = []; oppGuesses = [];
-    isMyTurn = true; currentRound = 1; roomId = null; gameActive = false; isSubmitting = false;
+    mode = null; playerNumber = null; isHost = false; roomPlayers = []; playerGuesses = {};
+    isMyTurn = true; currentTurnNumber = 1; currentRound = 1; roomId = null; gameActive = false; isSubmitting = false;
     show($('#lobby-options')); hide($('#room-info')); hide($('#matchmaking-info'));
     $('#input-room-code').value = ''; hideError('#lobby-error');
   }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Trò chơi đoán số 4 chữ số - 1P & 2P Online">
+  <meta name="description" content="Trò chơi đoán số 4 chữ số & Hoán vị 5 số - 1P & 2-4P Online">
   <title>Đoán Số</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
@@ -23,10 +23,10 @@
             <span class="brand-tile">0</span>
           </div>
           <h1>ĐOÁN SỐ</h1>
-          <p class="tagline">Bẻ khóa mật mã 4 chữ số</p>
+          <p class="tagline">Bẻ khóa mật mã 4 chữ số & Hoán vị 5 số</p>
         </div>
 
-        <div class="submode-selector">
+        <div class="submode-selector submode-grid-3">
           <button class="submode-btn active" data-mode="wordle">
             <span class="mode-icon">🧩</span>
             <span class="mode-title">Giải mã</span>
@@ -37,11 +37,16 @@
             <span class="mode-title">Lớn / Nhỏ</span>
             <span class="mode-desc">15 lượt • Lớn hơn/Nhỏ hơn</span>
           </button>
+          <button class="submode-btn" data-mode="perm5">
+            <span class="mode-icon">🎲</span>
+            <span class="mode-title">Hoán vị 5 số</span>
+            <span class="mode-desc">15 lượt • Dãy 1-5 • Match</span>
+          </button>
         </div>
 
         <div class="menu-actions">
           <button id="btn-1p" class="btn btn-primary">Chơi đơn</button>
-          <button id="btn-2p" class="btn btn-outline">Đối kháng</button>
+          <button id="btn-2p" class="btn btn-outline">Đối kháng (2-4 người)</button>
         </div>
 
         <div class="rules-box">
@@ -78,6 +83,22 @@
             </div>
             <p class="rules-note">Bạn có 15 lượt để tìm số (Binary Search)</p>
           </div>
+
+          <div class="rules-list hidden" id="rules-perm5">
+            <div class="rule-item">
+              <span class="rule-badge perm-range">Chỉ dùng 1 - 5</span>
+              <span>Chặn hoàn toàn các số 0, 6, 7, 8, 9</span>
+            </div>
+            <div class="rule-item">
+              <span class="rule-badge perm-correct">X Correct</span>
+              <span>Số vị trí trùng khớp chính xác với Target</span>
+            </div>
+            <div class="rule-item">
+              <span class="rule-badge equal">✓ 5 Correct</span>
+              <span>Tìm đúng dãy hoán vị 5 số để chiến thắng!</span>
+            </div>
+            <p class="rules-note">Ví dụ: Target 24513, Guess 22222 -> 1 Correct</p>
+          </div>
         </div>
       </div>
     </div>
@@ -86,18 +107,21 @@
     <div id="lobby-screen" class="screen">
       <div class="panel">
         <button class="link-back" id="btn-back-lobby">&larr; Quay lại</button>
-        <h2>Đối kháng</h2>
-        <p class="panel-desc">Ghép ngẫu nhiên hoặc tạo phòng đấu</p>
+        <h2>Đối kháng (2 - 4 Người)</h2>
+        <p class="panel-desc">Tạo phòng hoặc ghép ngẫu nhiên</p>
 
         <div id="lobby-options">
           <div class="lobby-submode-select">
             <label class="lobby-label">Chọn luật chơi:</label>
-            <div class="submode-selector submode-selector-sm">
+            <div class="submode-selector submode-selector-sm submode-grid-3">
               <button class="submode-btn active" data-lobby-mode="wordle">
                 <span>🧩 Giải mã (4 lượt)</span>
               </button>
               <button class="submode-btn" data-lobby-mode="highlow">
-                <span>📈 Lớn / Nhỏ (15 lượt)</span>
+                <span>📈 Lớn/Nhỏ (15 lượt)</span>
+              </button>
+              <button class="submode-btn" data-lobby-mode="perm5">
+                <span>🎲 Hoán vị 5 số</span>
               </button>
             </div>
           </div>
@@ -122,7 +146,15 @@
           <p class="room-label">Mã phòng</p>
           <div class="room-code" id="room-code-display"></div>
           <p class="room-submode-tag" id="room-submode-display"></p>
-          <p class="waiting"><span class="dot-pulse"></span> Đang chờ đối thủ</p>
+          
+          <div class="players-list-box" id="players-list-box">
+            <!-- Dynamic player list rendering -->
+          </div>
+
+          <div id="host-controls" class="hidden" style="margin-top: 1rem;">
+            <button id="btn-start-host" class="btn btn-primary btn-full">🚀 Bắt đầu game (Chủ phòng)</button>
+          </div>
+          <p class="waiting" id="waiting-host-start" style="margin-top: 0.8rem;"><span class="dot-pulse"></span> Chờ chủ phòng bắt đầu...</p>
         </div>
         <p id="lobby-error" class="error-msg hidden"></p>
       </div>
@@ -140,6 +172,7 @@
             <div class="digit-display-tile" data-index="1"></div>
             <div class="digit-display-tile" data-index="2"></div>
             <div class="digit-display-tile" data-index="3"></div>
+            <div class="digit-display-tile hidden" data-index="4"></div>
           </div>
         </div>
         <button id="btn-set-secret" class="btn btn-primary btn-full">Xác nhận</button>
@@ -167,21 +200,17 @@
             <div class="guess-grid" id="grid-1p"></div>
           </div>
         </div>
-        <div id="board-2p" class="board-wrap board-dual hidden">
-          <div class="board-section">
-            <p class="board-label">Bạn đoán</p>
-            <div class="guess-grid" id="grid-my"></div>
-          </div>
-          <div class="board-section">
-            <p class="board-label">Đối thủ đoán</p>
-            <div class="guess-grid" id="grid-opp"></div>
+        
+        <div id="board-multi" class="board-wrap hidden">
+          <div class="multi-grid-container" id="multi-grid-container">
+            <!-- Dynamic 2 to 4 player grid columns -->
           </div>
         </div>
       </div>
 
       <div id="input-area">
         <div id="turn-indicator" class="hidden">
-          <p class="waiting"><span class="dot-pulse"></span> Chờ đối thủ đoán</p>
+          <p class="waiting"><span class="dot-pulse"></span> <span id="turn-indicator-text">Chờ đối thủ đoán</span></p>
         </div>
         <div id="guess-form">
           <div class="digit-input-container" id="guess-inputs">
@@ -191,6 +220,7 @@
               <div class="digit-display-tile" data-index="1"></div>
               <div class="digit-display-tile" data-index="2"></div>
               <div class="digit-display-tile" data-index="3"></div>
+              <div class="digit-display-tile hidden" data-index="4"></div>
             </div>
           </div>
           <button id="btn-guess" class="btn btn-primary">Đoán</button>
