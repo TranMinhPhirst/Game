@@ -230,14 +230,17 @@
     }
   }
 
-  // ===== RENDER MULTI-PLAYER SEPARATE BOARDS (Wordle / HighLow - 2 Players) =====
+  // ===== RENDER MULTI-PLAYER SEPARATE BOARDS (Wordle / HighLow - Exactly 2 Players) =====
   function buildMultiPlayerBoards(playersList, subMode, max) {
     const container = $('#multi-grid-container');
     container.innerHTML = '';
-    const count = playersList.length;
+    
+    // For Wordle/HighLow, strictly limit to 2 players maximum
+    const validPlayers = subMode === 'perm5' ? playersList : playersList.slice(0, 2);
+    const count = validPlayers.length;
     container.className = `multi-grid-container cols-${count}`;
 
-    playersList.forEach(p => {
+    validPlayers.forEach(p => {
       const pNum = p.number;
       playerGuesses[pNum] = playerGuesses[pNum] || [];
 
@@ -269,6 +272,11 @@
 
   $('#btn-2p').addEventListener('click', () => {
     mode = '2p';
+    // Auto sync lobby submode with main menu selection!
+    selectedLobbySubMode = selectedSubMode;
+    $$('.submode-btn[data-lobby-mode]').forEach(b => {
+      b.classList.toggle('active', b.dataset.lobbyMode === selectedLobbySubMode);
+    });
     showScreen('lobby-screen');
   });
 
@@ -381,7 +389,7 @@
   socket.on('searching-match', () => {
     hide($('#lobby-options'));
     show($('#matchmaking-info'));
-    const modeTitles = { wordle: 'Giải mã (2 người - 4 lượt)', highlow: 'Lớn / Nhỏ (2 người - 15 lượt)', perm5: 'Hoán vị 5 số (2-4 người - Bảng chung)' };
+    const modeTitles = { wordle: 'Giải mã (Tối đa 2 người)', highlow: 'Lớn / Nhỏ (Tối đa 2 người)', perm5: 'Hoán vị 5 số (2-4 người - Bảng chung)' };
     $('#matchmaking-submode-display').textContent = `Luật: ${modeTitles[selectedLobbySubMode]}`;
   });
 
@@ -401,7 +409,11 @@
     hide($('#lobby-options')); hide($('#matchmaking-info')); show($('#room-info'));
     $('#room-code-display').textContent = data.roomId;
 
-    const modeTitles = { wordle: 'Luật: Giải mã (2 người - 4 lượt)', highlow: 'Luật: Lớn / Nhỏ (2 người - 15 lượt)', perm5: 'Luật: Hoán vị 5 số (2-4 người - Bảng chung)' };
+    const modeTitles = {
+      wordle: 'Luật: Giải mã (Phòng tối đa 2 người)',
+      highlow: 'Luật: Lớn / Nhỏ (Phòng tối đa 2 người)',
+      perm5: 'Luật: Hoán vị 5 số (Phòng 2-4 người)'
+    };
     $('#room-submode-display').textContent = modeTitles[activeSubMode];
 
     const listBox = $('#players-list-box');
@@ -420,9 +432,15 @@
       show($('#host-controls'));
       hide($('#waiting-host-start'));
       $('#btn-start-host').disabled = !data.canStart;
-      $('#btn-start-host').textContent = data.canStart
-        ? `🚀 Bắt đầu game (${roomPlayers.length} người)`
-        : `Cần ít nhất 2 người để bắt đầu`;
+      if (activeSubMode === 'perm5') {
+        $('#btn-start-host').textContent = data.canStart
+          ? `🚀 Bắt đầu game (${roomPlayers.length} người)`
+          : `Cần 2-4 người để bắt đầu`;
+      } else {
+        $('#btn-start-host').textContent = data.canStart
+          ? `🚀 Bắt đầu game (2 người)`
+          : `Chế độ này cần ĐÚNG 2 người (${roomPlayers.length}/2)`;
+      }
     } else {
       hide($('#host-controls'));
       show($('#waiting-host-start'));
@@ -600,7 +618,7 @@
   function showError(sel, msg) {
     const el = $(sel);
     if (el) { el.textContent = msg; show(el); }
-    setTimeout(() => { if (el) hide(el); }, 3000);
+    setTimeout(() => { if (el) hide(el); }, 3500);
   }
   function hideError(sel) { const el = $(sel); if (el) hide(el); }
 
