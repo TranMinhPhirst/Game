@@ -306,6 +306,12 @@
     socket.emit('start-game-host');
   });
 
+  $('#btn-leave-room').addEventListener('click', () => {
+    socket.emit('leave-room');
+    resetGame();
+    showScreen('menu-screen');
+  });
+
   $('#input-room-code').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') $('#btn-join-room').click();
   });

@@ -91,7 +91,11 @@ function reindexRoomPlayers(room) {
 function deleteRoom(rid) {
   const room = rooms.get(rid);
   if (room) {
-    room.players.forEach(p => playerRoom.delete(p.id));
+    room.players.forEach(p => {
+      playerRoom.delete(p.id);
+      const s = io.sockets.sockets.get(p.id);
+      if (s) s.leave(rid);
+    });
     rooms.delete(rid);
   }
 }
