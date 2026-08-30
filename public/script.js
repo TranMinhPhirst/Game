@@ -440,8 +440,8 @@
       const div = document.createElement('div');
       div.className = `player-badge-item ${p.number === playerNumber ? 'is-me' : ''}`;
       div.innerHTML = `
-        <span>Người chơi ${p.number} ${p.number === playerNumber ? '(Bạn)' : ''}</span>
-        ${p.isHost ? '<span class="player-host-tag">Chủ phòng</span>' : ''}
+        <span><i class="fa-solid fa-user" style="margin-right: 6px;"></i>Người chơi ${p.number} ${p.number === playerNumber ? '(Bạn)' : ''}</span>
+        ${p.isHost ? '<span class="player-host-tag"><i class="fa-solid fa-crown"></i> Chủ phòng</span>' : ''}
       `;
       listBox.appendChild(div);
     });
@@ -451,13 +451,13 @@
       hide($('#waiting-host-start'));
       $('#btn-start-host').disabled = !data.canStart;
       if (activeSubMode === 'perm5') {
-        $('#btn-start-host').textContent = data.canStart
-          ? `🚀 Bắt đầu game (${roomPlayers.length} người)`
-          : `Cần 2-4 người để bắt đầu`;
+        $('#btn-start-host').innerHTML = data.canStart
+          ? `<i class="fa-solid fa-rocket"></i> Bắt đầu game (${roomPlayers.length} người)`
+          : `<i class="fa-solid fa-users"></i> Cần 2-4 người để bắt đầu`;
       } else {
-        $('#btn-start-host').textContent = data.canStart
-          ? `🚀 Bắt đầu game (2 người)`
-          : `Chế độ này cần ĐÚNG 2 người (${roomPlayers.length}/2)`;
+        $('#btn-start-host').innerHTML = data.canStart
+          ? `<i class="fa-solid fa-rocket"></i> Bắt đầu game (2 người)`
+          : `<i class="fa-solid fa-users"></i> Chế độ này cần ĐÚNG 2 người (${roomPlayers.length}/2)`;
       }
     } else {
       hide($('#host-controls'));
@@ -622,9 +622,13 @@
 
   function showResult(type, message, secrets) {
     showScreen('result-screen');
-    const icons = { win: '✓', lose: '✗', draw: '=' };
+    const icons = {
+      win: '<i class="fa-solid fa-trophy" style="color: #facc15;"></i>',
+      lose: '<i class="fa-solid fa-face-frown" style="color: #f87171;"></i>',
+      draw: '<i class="fa-solid fa-handshake" style="color: #60a5fa;"></i>'
+    };
     const titles = { win: 'Chiến thắng', lose: 'Thua cuộc', draw: 'Hòa trận' };
-    $('#result-icon').textContent = icons[type] || '—';
+    $('#result-icon').innerHTML = icons[type] || '<i class="fa-solid fa-flag-checkered"></i>';
     $('#result-icon').className = 'result-emoji result-' + type;
     $('#result-title').textContent = titles[type] || 'Kết thúc';
     $('#result-message').textContent = message;
