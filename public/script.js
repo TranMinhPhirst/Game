@@ -48,18 +48,7 @@
     });
   });
 
-  // ===== SUBMODE TABS (LOBBY) =====
-  $$('.submode-btn[data-lobby-mode]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      $$('.submode-btn[data-lobby-mode]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      selectedLobbySubMode = btn.dataset.lobbyMode;
-
-      if (roomId && isHost) {
-        socket.emit('change-room-submode', { subMode: selectedLobbySubMode });
-      }
-    });
-  });
+  // Submode is chosen from the main menu!
 
   // ===== SINGLE HIDDEN DIGIT INPUT CONTROLLER =====
   function setupDigitInputs(container, isPerm5 = false) {
@@ -276,11 +265,14 @@
 
   $('#btn-2p').addEventListener('click', () => {
     mode = '2p';
-    // Auto sync lobby submode with main menu selection!
     selectedLobbySubMode = selectedSubMode;
-    $$('.submode-btn[data-lobby-mode]').forEach(b => {
-      b.classList.toggle('active', b.dataset.lobbyMode === selectedLobbySubMode);
-    });
+    
+    const modeTitles = {
+      wordle: 'Luật: 🧩 Giải mã (Phòng 2 người)',
+      highlow: 'Luật: 📈 Lớn / Nhỏ (Phòng 2 người)',
+      perm5: 'Luật: 🎲 Hoán vị 5 số (Phòng 2-4 người)'
+    };
+    $('#lobby-selected-mode-tag').textContent = modeTitles[selectedLobbySubMode] || '';
     showScreen('lobby-screen');
   });
 
@@ -410,14 +402,6 @@
     playerNumber = data.playerNumber;
     isHost = data.isHost;
     roomPlayers = data.players || [];
-
-    // Sync lobby submode buttons UI
-    $$('.submode-btn[data-lobby-mode]').forEach(b => {
-      const isCur = b.dataset.lobbyMode === activeSubMode;
-      b.classList.toggle('active', isCur);
-      b.style.pointerEvents = isHost ? 'auto' : 'none';
-      b.style.opacity = isHost ? '1' : '0.6';
-    });
 
     hide($('#lobby-options')); hide($('#matchmaking-info')); show($('#room-info'));
     $('#room-code-display').textContent = data.roomId;
@@ -576,6 +560,12 @@
   socket.on('opponent-disconnected', () => {
     gameActive = false;
     alert('Có người chơi đã ngắt kết nối!');
+    resetGame(); showScreen('menu-screen');
+  });
+
+  socket.on('host-left-room', (data) => {
+    gameActive = false;
+    alert(data && data.message ? data.message : 'Chủ phòng đã thoát, phòng đã bị hủy!');
     resetGame(); showScreen('menu-screen');
   });
 

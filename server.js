@@ -101,19 +101,23 @@ function leaveCurrentRoom(socket) {
   if (rid) {
     const room = rooms.get(rid);
     if (room) {
-      room.players = room.players.filter(p => p.id !== socket.id);
-      if (room.players.length === 0) {
+      if (room.host === socket.id) {
+        // Host left -> Delete entire room and notify remaining players
+        io.to(rid).emit('host-left-room', { message: 'Chủ phòng đã thoát, phòng đã bị hủy!' });
         deleteRoom(rid);
       } else {
-        if (room.host === socket.id) {
-          room.host = room.players[0].id;
-        }
-        if (room.phase === 'playing' || room.phase === 'setting') {
-          io.to(rid).emit('opponent-disconnected');
+        // Non-host player left
+        room.players = room.players.filter(p => p.id !== socket.id);
+        if (room.players.length === 0) {
           deleteRoom(rid);
         } else {
-          reindexRoomPlayers(room);
-          broadcastRoomUpdate(room);
+          if (room.phase === 'playing' || room.phase === 'setting') {
+            io.to(rid).emit('opponent-disconnected');
+            deleteRoom(rid);
+          } else {
+            reindexRoomPlayers(room);
+            broadcastRoomUpdate(room);
+          }
         }
       }
     }
