@@ -495,25 +495,71 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 .player-tag-badge.p3 { background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); }
 .player-tag-badge.p4 { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
 
+/* ===== TOUCH & ACCESSIBILITY ===== */
+button, input, select, a {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-  .multi-grid-container.cols-3, .multi-grid-container.cols-4 {
-    grid-template-columns: 1fr 1fr; gap: 1rem;
+  :root { --tile: 40px; --gap: 4px; }
+  
+  .menu-wrap { padding: 1.2rem; }
+  .panel { padding: 1.4rem; max-width: 100%; }
+
+  .brand-tiles { gap: 6px; margin-bottom: 0.8rem; }
+  .brand-tile { width: 44px; height: 48px; font-size: 1.3rem; }
+  h1 { font-size: 1.6rem; letter-spacing: 4px; }
+
+  .submode-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
   }
-  :root { --tile: 42px; }
-  .digit-display-tile { width: 42px; height: 46px; font-size: 1.2rem; }
-  #guess-form .digit-display-tile { width: 40px; height: 44px; font-size: 1.1rem; }
-  .brand-tile { width: 42px; height: 46px; font-size: 1.2rem; }
-  h1 { font-size: 1.5rem; letter-spacing: 4px; }
-  .panel { padding: 1.5rem; }
-  .submode-grid-3 { grid-template-columns: 1fr; }
-  .rule-badge, .guess-badge { padding: 4px 6px; font-size: 0.75rem; min-width: 76px; }
+  .submode-btn { padding: 8px 4px; }
+  .mode-icon { font-size: 1.1rem; margin-bottom: 2px; }
+  .mode-title { font-size: 0.78rem; }
+  .mode-desc { font-size: 0.62rem; }
+
+  .menu-actions { flex-direction: row; gap: 8px; }
+  .menu-actions .btn { flex: 1; padding: 12px 14px; font-size: 0.9rem; }
+
+  .multi-grid-container.cols-2 { grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+  .multi-grid-container.cols-3, .multi-grid-container.cols-4 {
+    grid-template-columns: 1fr 1fr; gap: 0.8rem;
+  }
+
+  .digit-display-tile { width: 40px; height: 46px; font-size: 1.2rem; }
+  #guess-form .digit-display-tile { width: 38px; height: 42px; font-size: 1.1rem; }
+
+  .rule-badge, .guess-badge { padding: 3px 5px; font-size: 0.72rem; min-width: 68px; }
+  .guess-row-num { width: 18px; font-size: 0.65rem; }
+
+  #game-screen.active { padding-top: 54px; padding-bottom: 140px; }
+  #input-area { padding: 0.8rem 1rem 1rem; }
 }
 
 @media (max-width: 480px) {
-  .multi-grid-container.cols-2, .multi-grid-container.cols-3, .multi-grid-container.cols-4 {
-    grid-template-columns: 1fr; gap: 0.8rem;
+  :root { --tile: 34px; --gap: 3px; }
+
+  .submode-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
   }
-  :root { --tile: 36px; --gap: 4px; }
-  .digit-display-tile { width: 36px; height: 42px; font-size: 1rem; }
+  .submode-btn { padding: 6px 2px; }
+  .mode-title { font-size: 0.72rem; }
+  .mode-desc { font-size: 0.58rem; }
+
+  .brand-tile { width: 38px; height: 42px; font-size: 1.1rem; }
+  h1 { font-size: 1.35rem; letter-spacing: 3px; }
+  
+  .digit-display-tile { width: 34px; height: 40px; font-size: 1rem; }
+  #guess-form .digit-display-tile { width: 34px; height: 38px; font-size: 1rem; }
+
+  .multi-grid-container.cols-2 { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .multi-grid-container.cols-3, .multi-grid-container.cols-4 { grid-template-columns: 1fr; gap: 0.6rem; }
+  
+  .board-label { font-size: 0.65rem; margin-bottom: 0.4rem; letter-spacing: 1px; }
+  .guess-cell { font-size: 1.1rem; }
+  .guess-row-highlow .guess-badge, .guess-row-perm .guess-badge { font-size: 0.68rem; padding: 2px 4px; }
 }
