@@ -54,6 +54,10 @@
       $$('.submode-btn[data-lobby-mode]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       selectedLobbySubMode = btn.dataset.lobbyMode;
+
+      if (roomId && isHost) {
+        socket.emit('change-room-submode', { subMode: selectedLobbySubMode });
+      }
     });
   });
 
@@ -401,10 +405,19 @@
   socket.on('room-updated', (data) => {
     roomId = data.roomId;
     activeSubMode = data.subMode;
+    selectedLobbySubMode = data.subMode;
     maxAttempts = data.max;
     playerNumber = data.playerNumber;
     isHost = data.isHost;
     roomPlayers = data.players || [];
+
+    // Sync lobby submode buttons UI
+    $$('.submode-btn[data-lobby-mode]').forEach(b => {
+      const isCur = b.dataset.lobbyMode === activeSubMode;
+      b.classList.toggle('active', isCur);
+      b.style.pointerEvents = isHost ? 'auto' : 'none';
+      b.style.opacity = isHost ? '1' : '0.6';
+    });
 
     hide($('#lobby-options')); hide($('#matchmaking-info')); show($('#room-info'));
     $('#room-code-display').textContent = data.roomId;
@@ -627,6 +640,11 @@
     isMyTurn = true; currentTurnNumber = 1; currentRound = 1; roomId = null; gameActive = false; isSubmitting = false;
     show($('#lobby-options')); hide($('#room-info')); hide($('#matchmaking-info'));
     $('#input-room-code').value = ''; hideError('#lobby-error');
+
+    $$('.submode-btn[data-lobby-mode]').forEach(b => {
+      b.style.pointerEvents = 'auto';
+      b.style.opacity = '1';
+    });
   }
 
   // ===== BRAND ANIMATION =====

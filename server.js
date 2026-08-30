@@ -81,6 +81,57 @@ function evaluatePermutation(guess, secret) {
   return { correct, won: correct === 5 };
 }
 
+// --- Helpers for room lifecycle & cleanup ---
+function reindexRoomPlayers(room) {
+  room.players.forEach((p, idx) => {
+    p.number = idx + 1;
+  });
+}
+
+function deleteRoom(rid) {
+  const room = rooms.get(rid);
+  if (room) {
+    room.players.forEach(p => playerRoom.delete(p.id));
+    rooms.delete(rid);
+  }
+}
+
+function leaveCurrentRoom(socket) {
+  const rid = playerRoom.get(socket.id);
+  if (rid) {
+    const room = rooms.get(rid);
+    if (room) {
+      room.players = room.players.filter(p => p.id !== socket.id);
+      if (room.players.length === 0) {
+        deleteRoom(rid);
+      } else {
+        if (room.host === socket.id) {
+          room.host = room.players[0].id;
+        }
+        if (room.phase === 'playing' || room.phase === 'setting') {
+          io.to(rid).emit('opponent-disconnected');
+          deleteRoom(rid);
+        } else {
+          reindexRoomPlayers(room);
+          broadcastRoomUpdate(room);
+        }
+      }
+    }
+    playerRoom.delete(socket.id);
+  }
+}
+
+// Periodically clean up inactive rooms (>15 mins)
+setInterval(() => {
+  const now = Date.now();
+  for (const [rid, room] of rooms.entries()) {
+    if (room.createdAt && (now - room.createdAt > 15 * 60 * 1000)) {
+      io.to(rid).emit('error-msg', { message: 'Phòng đã tự động đóng do hết thời gian chờ!' });
+      deleteRoom(rid);
+    }
+  }
+}, 5 * 60 * 1000);
+
 // --- Helper to broadcast updated room info ---
 function broadcastRoomUpdate(room) {
   const playerList = room.players.map(p => ({ number: p.number, isHost: p.id === room.host }));
@@ -106,6 +157,9 @@ io.on('connection', (socket) => {
 
   // ========== 1P ==========
   socket.on('start-1p', (payload) => {
+    removeFromQueue(socket.id);
+    leaveCurrentRoom(socket);
+
     const subMode = payload && ['highlow', 'perm5'].includes(payload.subMode) ? payload.subMode : 'wordle';
     let secret, max;
     if (subMode === 'highlow') { secret = genSecret(); max = 15; }
@@ -153,6 +207,7 @@ io.on('connection', (socket) => {
   socket.on('find-random-match', (payload) => {
     const subMode = payload && ['highlow', 'perm5'].includes(payload.subMode) ? payload.subMode : 'wordle';
     removeFromQueue(socket.id);
+    leaveCurrentRoom(socket);
 
     matchQueues[subMode] = matchQueues[subMode].filter(id => io.sockets.sockets.has(id));
 
@@ -165,7 +220,8 @@ io.on('connection', (socket) => {
         id, subMode, max, host: oppId,
         players: [{ id: oppId, number: 1 }, { id: socket.id, number: 2 }],
         secrets: {}, guesses: { [oppId]: [], [socket.id]: [] }, sharedGuesses: [],
-        turn: 0, round: 1, phase: subMode === 'perm5' ? 'playing' : 'setting', wonFlags: {}
+        turn: 0, round: 1, phase: subMode === 'perm5' ? 'playing' : 'setting', wonFlags: {},
+        createdAt: Date.now()
       };
       if (subMode === 'perm5') room.secret = genPermutation5();
 
@@ -202,6 +258,8 @@ io.on('connection', (socket) => {
 
   socket.on('create-room', (payload) => {
     removeFromQueue(socket.id);
+    leaveCurrentRoom(socket);
+
     let id; do { id = genRoomId(); } while (rooms.has(id));
     const subMode = payload && ['highlow', 'perm5'].includes(payload.subMode) ? payload.subMode : 'wordle';
     const max = subMode === 'highlow' ? 15 : (subMode === 'perm5' ? 999 : 4);
@@ -210,7 +268,8 @@ io.on('connection', (socket) => {
       id, subMode, max, host: socket.id,
       players: [{ id: socket.id, number: 1 }],
       secrets: {}, guesses: { [socket.id]: [] }, sharedGuesses: [],
-      turn: 0, round: 1, phase: 'waiting', wonFlags: {}
+      turn: 0, round: 1, phase: 'waiting', wonFlags: {},
+      createdAt: Date.now()
     };
     if (subMode === 'perm5') room.secret = genPermutation5();
 
@@ -221,8 +280,24 @@ io.on('connection', (socket) => {
     broadcastRoomUpdate(room);
   });
 
+  socket.on('change-room-submode', (payload) => {
+    const rid = playerRoom.get(socket.id);
+    const room = rid && rooms.get(rid);
+    if (!room || room.host !== socket.id || room.phase !== 'waiting') return;
+
+    const subMode = payload && ['highlow', 'perm5'].includes(payload.subMode) ? payload.subMode : 'wordle';
+    room.subMode = subMode;
+    room.max = subMode === 'highlow' ? 15 : (subMode === 'perm5' ? 999 : 4);
+    if (subMode === 'perm5') room.secret = genPermutation5();
+    else delete room.secret;
+
+    broadcastRoomUpdate(room);
+  });
+
   socket.on('join-room', ({ roomId }) => {
     removeFromQueue(socket.id);
+    leaveCurrentRoom(socket);
+
     const rid = (roomId || '').toUpperCase().trim();
     const room = rooms.get(rid);
     if (!room) return socket.emit('error-msg', { message: 'Không tìm thấy phòng!' });
@@ -233,8 +308,7 @@ io.on('connection', (socket) => {
     }
     if (room.phase !== 'waiting') return socket.emit('error-msg', { message: 'Trò chơi đã bắt đầu!' });
 
-    const pNum = room.players.length + 1;
-    room.players.push({ id: socket.id, number: pNum });
+    room.players.push({ id: socket.id, number: room.players.length + 1 });
     room.guesses[socket.id] = [];
     playerRoom.set(socket.id, rid);
     socket.join(rid);
@@ -353,7 +427,7 @@ io.on('connection', (socket) => {
             subMode: room.subMode
           });
         });
-        setTimeout(() => rooms.delete(rid), 60000);
+        setTimeout(() => deleteRoom(rid), 60000);
         return;
       }
 
@@ -408,7 +482,7 @@ io.on('connection', (socket) => {
           });
         });
 
-        setTimeout(() => rooms.delete(rid), 60000);
+        setTimeout(() => deleteRoom(rid), 60000);
         return;
       }
 
@@ -420,7 +494,7 @@ io.on('connection', (socket) => {
           player2: room.secrets[p1.id]
         };
         io.to(rid).emit('game-over-2p', { result: 'both-lose', secrets, subMode: room.subMode });
-        setTimeout(() => rooms.delete(rid), 60000);
+        setTimeout(() => deleteRoom(rid), 60000);
         return;
       }
 
@@ -435,27 +509,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     removeFromQueue(socket.id);
     spGames.delete(socket.id);
-    const rid = playerRoom.get(socket.id);
-    if (rid) {
-      const room = rooms.get(rid);
-      if (room) {
-        room.players = room.players.filter(p => p.id !== socket.id);
-        if (room.players.length === 0) {
-          rooms.delete(rid);
-        } else {
-          if (room.host === socket.id) {
-            room.host = room.players[0].id;
-          }
-          if (room.phase === 'playing') {
-            io.to(rid).emit('opponent-disconnected');
-            rooms.delete(rid);
-          } else {
-            broadcastRoomUpdate(room);
-          }
-        }
-      }
-      playerRoom.delete(socket.id);
-    }
+    leaveCurrentRoom(socket);
   });
 });
 
