@@ -329,9 +329,14 @@
     if (!gameActive || isSubmitting) return;
     const guess = getDigitValue($('#guess-inputs'));
     const isPerm = activeSubMode === 'perm5';
-    const regex = isPerm ? /^[1-5]{5}$/ : /^\d{4}$/;
-    if (!regex.test(guess)) {
-      return showError('#guess-error', isPerm ? 'Nhập đủ 5 chữ số từ 1 đến 5' : 'Nhập đủ 4 chữ số');
+    if (isPerm) {
+      if (!/^[1-5]{5}$/.test(guess) || new Set(guess).size !== 5) {
+        return showError('#guess-error', 'Hoán vị 5 số phải gồm 5 chữ số KHÁC NHAU từ 1 đến 5 (VD: 12345)');
+      }
+    } else {
+      if (!/^\d{4}$/.test(guess)) {
+        return showError('#guess-error', 'Nhập đủ 4 chữ số (0-9)');
+      }
     }
     hideError('#guess-error');
 

@@ -480,6 +480,21 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 .error-msg { color: var(--red-light); font-size: 0.82rem; margin-top: 0.6rem; }
 .hidden { display: none !important; }
 
+/* ===== PLAYER TAG BADGES ===== */
+.player-tag-badge {
+  font-family: var(--ff-mono);
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+.player-tag-badge.p1 { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+.player-tag-badge.p2 { background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4); }
+.player-tag-badge.p3 { background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); }
+.player-tag-badge.p4 { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .multi-grid-container.cols-3, .multi-grid-container.cols-4 {

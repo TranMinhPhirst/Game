@@ -72,6 +72,10 @@ function evaluateHighLow(guess, secret) {
   return 'equal';
 }
 
+function isPermutationValid(str) {
+  return typeof str === 'string' && /^[1-5]{5}$/.test(str) && new Set(str).size === 5;
+}
+
 // Permutation 5 evaluation (count exact position matches)
 function evaluatePermutation(guess, secret) {
   let correct = 0;
@@ -182,8 +186,8 @@ io.on('connection', (socket) => {
     const g = spGames.get(socket.id);
     if (!g) return;
     const isPerm = g.subMode === 'perm5';
-    const regex = isPerm ? /^[1-5]{5}$/ : /^\d{4}$/;
-    if (!regex.test(guess)) return;
+    const isValid = isPerm ? isPermutationValid(guess) : /^\d{4}$/.test(guess);
+    if (!isValid) return;
 
     g.attempts++;
 
@@ -388,8 +392,8 @@ io.on('connection', (socket) => {
     if (!currentP || currentP.id !== socket.id) return;
 
     const isPerm = room.subMode === 'perm5';
-    const regex = isPerm ? /^[1-5]{5}$/ : /^\d{4}$/;
-    if (!regex.test(guess)) return;
+    const isValid = isPerm ? isPermutationValid(guess) : /^\d{4}$/.test(guess);
+    if (!isValid) return;
 
     let result, won;
     if (room.subMode === 'perm5') {
