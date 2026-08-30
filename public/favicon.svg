@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="16" fill="#121213"/>
+  <rect x="8" y="8" width="21" height="21" rx="5" fill="#538d4e"/>
+  <text x="18.5" y="23.5" font-family="'JetBrains Mono', system-ui, sans-serif" font-weight="800" font-size="14" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">1</text>
+  
+  <rect x="35" y="8" width="21" height="21" rx="5" fill="#b59f3b"/>
+  <text x="45.5" y="23.5" font-family="'JetBrains Mono', system-ui, sans-serif" font-weight="800" font-size="14" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">2</text>
+  
+  <rect x="8" y="35" width="21" height="21" rx="5" fill="#923838"/>
+  <text x="18.5" y="50.5" font-family="'JetBrains Mono', system-ui, sans-serif" font-weight="800" font-size="14" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">3</text>
+  
+  <rect x="35" y="35" width="21" height="21" rx="5" fill="#538d4e"/>
+  <text x="45.5" y="50.5" font-family="'JetBrains Mono', system-ui, sans-serif" font-weight="800" font-size="14" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">4</text>
+</svg>
