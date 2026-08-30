@@ -279,8 +279,9 @@
   // ===== LOBBY =====
   $('#btn-back-lobby').addEventListener('click', () => {
     socket.emit('cancel-random-match');
+    socket.emit('leave-room');
+    resetGame();
     showScreen('menu-screen');
-    mode = null;
   });
 
   $('#btn-random-match').addEventListener('click', () => {
@@ -289,6 +290,7 @@
 
   $('#btn-cancel-match').addEventListener('click', () => {
     socket.emit('cancel-random-match');
+    socket.emit('leave-room');
   });
 
   $('#btn-create-room').addEventListener('click', () => {
@@ -335,11 +337,19 @@
   });
 
   $('#btn-back-game').addEventListener('click', () => {
-    if (confirm('Thoát trò chơi?')) { resetGame(); showScreen('menu-screen'); }
+    if (confirm('Thoát trò chơi?')) {
+      socket.emit('leave-room');
+      resetGame();
+      showScreen('menu-screen');
+    }
   });
 
   // ===== RESULT =====
-  $('#btn-play-again').addEventListener('click', () => { resetGame(); showScreen('menu-screen'); });
+  $('#btn-play-again').addEventListener('click', () => {
+    socket.emit('leave-room');
+    resetGame();
+    showScreen('menu-screen');
+  });
 
   // ===== SOCKET: 1P =====
   socket.on('game-started-1p', (data) => {

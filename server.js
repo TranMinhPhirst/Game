@@ -260,6 +260,11 @@ io.on('connection', (socket) => {
     socket.emit('match-cancelled');
   });
 
+  socket.on('leave-room', () => {
+    removeFromQueue(socket.id);
+    leaveCurrentRoom(socket);
+  });
+
   socket.on('create-room', (payload) => {
     removeFromQueue(socket.id);
     leaveCurrentRoom(socket);
