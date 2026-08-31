@@ -318,9 +318,9 @@
     selectedLobbySubMode = selectedSubMode;
     
     const modeTitles = {
-      wordle: 'Luật: 🧩 Giải mã (Phòng 2 người)',
-      highlow: 'Luật: 📈 Lớn / Nhỏ (Phòng 2 người)',
-      perm5: 'Luật: 🎲 Hoán vị 5 số (Phòng 2-4 người)'
+      wordle: 'Luật: 🧩 Decoder 4D (Phòng 2 người)',
+      highlow: 'Luật: 📈 HighLow Clash (Phòng 2 người)',
+      perm5: 'Luật: 🎲 PermuRush (Phòng 2-4 người)'
     };
     $('#lobby-selected-mode-tag').textContent = modeTitles[selectedLobbySubMode] || '';
     showScreen('lobby-screen');
@@ -417,7 +417,7 @@
     showScreen('game-screen');
     show($('#board-1p')); hide($('#board-multi'));
 
-    const modeTitles = { wordle: 'Giải mã', highlow: 'Lớn / Nhỏ', perm5: 'Hoán vị 5 số' };
+    const modeTitles = { wordle: 'Decoder 4D', highlow: 'HighLow Clash', perm5: 'PermuRush' };
     $('#submode-label').textContent = modeTitles[activeSubMode] || 'Giải mã';
     $('#mode-label').textContent = 'Chơi đơn';
     updateRoundLabel();
@@ -450,7 +450,7 @@
   socket.on('searching-match', () => {
     hide($('#lobby-options'));
     show($('#matchmaking-info'));
-    const modeTitles = { wordle: 'Giải mã (Tối đa 2 người)', highlow: 'Lớn / Nhỏ (Tối đa 2 người)', perm5: 'Hoán vị 5 số (2-4 người - Bảng chung)' };
+    const modeTitles = { wordle: 'Decoder 4D (Tối đa 2 người)', highlow: 'HighLow Clash (Tối đa 2 người)', perm5: 'PermuRush (2-4 người - Bảng chung)' };
     $('#matchmaking-submode-display').textContent = `Luật: ${modeTitles[selectedLobbySubMode]}`;
   });
 
@@ -472,9 +472,9 @@
     $('#room-code-display').textContent = data.roomId;
 
     const modeTitles = {
-      wordle: 'Luật: Giải mã (Phòng tối đa 2 người)',
-      highlow: 'Luật: Lớn / Nhỏ (Phòng tối đa 2 người)',
-      perm5: 'Luật: Hoán vị 5 số (Phòng 2-4 người)'
+      wordle: 'Luật: Decoder 4D (Phòng tối đa 2 người)',
+      highlow: 'Luật: HighLow Clash (Phòng tối đa 2 người)',
+      perm5: 'Luật: PermuRush (Phòng 2-4 người)'
     };
     $('#room-submode-display').textContent = modeTitles[activeSubMode];
 
@@ -555,7 +555,7 @@
       buildMultiPlayerBoards(roomPlayers, activeSubMode, maxAttempts);
     }
 
-    const modeTitles = { wordle: 'Giải mã', highlow: 'Lớn / Nhỏ', perm5: 'Hoán vị 5 số' };
+    const modeTitles = { wordle: 'Decoder 4D', highlow: 'HighLow Clash', perm5: 'PermuRush' };
     $('#submode-label').textContent = modeTitles[activeSubMode];
     $('#mode-label').textContent = `Người chơi ${playerNumber}`;
     updateRoundLabel();
