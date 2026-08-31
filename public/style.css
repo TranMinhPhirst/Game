@@ -495,6 +495,51 @@ h2 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.2
 .player-tag-badge.p3 { background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); }
 .player-tag-badge.p4 { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
 
+/* ===== TIMER BADGES & BANNERS ===== */
+.tag-timer {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  font-family: var(--ff-mono);
+  font-weight: 800;
+  transition: all 0.3s ease;
+}
+.tag-timer.warning {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  border-color: #ef4444;
+  animation: pulse-timer 0.6s infinite alternate ease-in-out;
+}
+
+.turn-timer-banner {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-2);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.turn-timer-banner strong {
+  font-family: var(--ff-mono);
+  font-size: 1.1rem;
+  color: #f87171;
+}
+.turn-timer-banner.warning strong {
+  color: #ef4444;
+  animation: pulse-timer 0.6s infinite alternate ease-in-out;
+}
+
+@keyframes pulse-timer {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(1.08); opacity: 0.8; }
+}
+
 /* ===== TOUCH & ACCESSIBILITY ===== */
 button, input, select, a {
   touch-action: manipulation;

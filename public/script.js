@@ -19,6 +19,8 @@
   let roomId = null;
   let gameActive = false;
   let isSubmitting = false;
+  let timerInterval = null;
+  let currentTimerSec = 0;
 
   // ===== DOM =====
   const $ = (s) => document.querySelector(s);
@@ -29,6 +31,54 @@
   function showScreen(id) {
     $$('.screen').forEach(s => s.classList.remove('active'));
     $(`#${id}`).classList.add('active');
+  }
+
+  // ===== TURN TIMER HELPERS =====
+  function stopTurnTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    hide($('#timer-label'));
+    hide($('#turn-timer-banner'));
+  }
+
+  function startTurnTimer(duration) {
+    stopTurnTimer();
+    if (!gameActive || mode === '1p') return;
+
+    currentTimerSec = duration;
+    show($('#timer-label'));
+    show($('#turn-timer-banner'));
+    updateTimerDisplay(currentTimerSec);
+
+    timerInterval = setInterval(() => {
+      currentTimerSec--;
+      if (currentTimerSec < 0) currentTimerSec = 0;
+      updateTimerDisplay(currentTimerSec);
+      if (currentTimerSec <= 0) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }, 1000);
+  }
+
+  function updateTimerDisplay(sec) {
+    const labelSec = $('#timer-sec');
+    const countSec = $('#turn-timer-count');
+    if (labelSec) labelSec.textContent = sec;
+    if (countSec) countSec.textContent = sec;
+
+    const timerLabel = $('#timer-label');
+    const timerBanner = $('#turn-timer-banner');
+
+    if (sec <= 5) {
+      if (timerLabel) timerLabel.classList.add('warning');
+      if (timerBanner) timerBanner.classList.add('warning');
+    } else {
+      if (timerLabel) timerLabel.classList.remove('warning');
+      if (timerBanner) timerBanner.classList.remove('warning');
+    }
   }
 
   // ===== SUBMODE TABS (MENU) =====
@@ -512,6 +562,7 @@
 
     updateTurnUI();
     clearDigitInputs($('#guess-inputs'));
+    startTurnTimer(data.turnDuration || (activeSubMode === 'perm5' ? 15 : 30));
   });
 
   socket.on('guess-broadcast-2p', (data) => {
@@ -537,10 +588,16 @@
     updateRoundLabel();
     updateTurnUI();
     if (isMyTurn) clearDigitInputs($('#guess-inputs'));
+    startTurnTimer(data.turnDuration || (activeSubMode === 'perm5' ? 15 : 30));
+  });
+
+  socket.on('turn-timeout-notice', (data) => {
+    showError('#guess-error', data.message || 'Hết thời gian lượt!');
   });
 
   socket.on('game-over-2p', (data) => {
     gameActive = false;
+    stopTurnTimer();
     const secrets = [];
     if (data.secrets) {
       if (data.secrets.secret) {
@@ -574,12 +631,14 @@
 
   socket.on('opponent-disconnected', () => {
     gameActive = false;
+    stopTurnTimer();
     alert('Có người chơi đã ngắt kết nối!');
     resetGame(); showScreen('menu-screen');
   });
 
   socket.on('host-left-room', (data) => {
     gameActive = false;
+    stopTurnTimer();
     alert(data && data.message ? data.message : 'Chủ phòng đã thoát, phòng đã bị hủy!');
     resetGame(); showScreen('menu-screen');
   });
@@ -645,6 +704,7 @@
   function hideError(sel) { const el = $(sel); if (el) hide(el); }
 
   function resetGame() {
+    stopTurnTimer();
     mode = null; playerNumber = null; isHost = false; roomPlayers = []; playerGuesses = {}; sharedGuesses = [];
     isMyTurn = true; currentTurnNumber = 1; currentRound = 1; roomId = null; gameActive = false; isSubmitting = false;
     show($('#lobby-options')); hide($('#room-info')); hide($('#matchmaking-info'));

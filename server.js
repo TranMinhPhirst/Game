@@ -85,6 +85,131 @@ function evaluatePermutation(guess, secret) {
   return { correct, won: correct === 5 };
 }
 
+function getTurnDuration(subMode) {
+  return subMode === 'perm5' ? 15 : 30;
+}
+
+function clearTurnTimer(room) {
+  if (room && room.turnTimer) {
+    clearTimeout(room.turnTimer);
+    room.turnTimer = null;
+  }
+}
+
+function startTurnTimer(room) {
+  clearTurnTimer(room);
+  if (!room || room.phase !== 'playing') return;
+
+  const duration = getTurnDuration(room.subMode);
+  room.turnDuration = duration;
+  room.turnStartTime = Date.now();
+
+  room.turnTimer = setTimeout(() => {
+    handleTurnTimeout(room.id);
+  }, duration * 1000);
+}
+
+function handleTurnTimeout(roomId) {
+  const room = rooms.get(roomId);
+  if (!room || room.phase !== 'playing') return;
+
+  const currentP = room.players[room.turn];
+  if (!currentP) return;
+
+  const isPerm = room.subMode === 'perm5';
+  const duration = getTurnDuration(room.subMode);
+
+  io.to(roomId).emit('turn-timeout-notice', {
+    playerNumber: currentP.number,
+    message: `Người chơi ${currentP.number} đã hết ${duration}s lượt!`
+  });
+
+  if (isPerm) {
+    room.turn = (room.turn + 1) % room.players.length;
+    if (room.turn === 0) room.round++;
+    const nextP = room.players[room.turn];
+    io.to(roomId).emit('turn-update', {
+      currentTurn: nextP.number,
+      round: room.round,
+      turnDuration: duration
+    });
+    startTurnTimer(room);
+    return;
+  }
+
+  const p0 = room.players[0];
+  const p1 = room.players[1];
+
+  if (room.turn === 0) {
+    room.turn = 1;
+    io.to(roomId).emit('turn-update', {
+      currentTurn: p1.number,
+      round: room.round,
+      turnDuration: duration
+    });
+    startTurnTimer(room);
+  } else {
+    const p0Won = !!room.wonFlags[p0.id];
+    const p1Won = !!room.wonFlags[p1.id];
+
+    if (p0Won || p1Won) {
+      room.phase = 'finished';
+      clearTurnTimer(room);
+      const secrets = {
+        player1: room.secrets[p0.id],
+        player2: room.secrets[p1.id]
+      };
+
+      let outcomeType = 'win';
+      let winnerNum = null;
+      if (p0Won && p1Won) {
+        outcomeType = 'draw';
+      } else if (p0Won) {
+        winnerNum = 1;
+      } else {
+        winnerNum = 2;
+      }
+
+      room.players.forEach(p => {
+        let userRes = 'lose';
+        if (outcomeType === 'draw') userRes = 'draw';
+        else if (p.number === winnerNum) userRes = 'win';
+
+        io.to(p.id).emit('game-over-2p', {
+          result: userRes,
+          winnerNumber: winnerNum,
+          secrets,
+          subMode: room.subMode
+        });
+      });
+
+      setTimeout(() => deleteRoom(roomId), 60000);
+      return;
+    }
+
+    if (room.round >= room.max) {
+      room.phase = 'finished';
+      clearTurnTimer(room);
+      const secrets = {
+        player1: room.secrets[p0.id],
+        player2: room.secrets[p1.id]
+      };
+      io.to(roomId).emit('game-over-2p', { result: 'both-lose', secrets, subMode: room.subMode });
+      setTimeout(() => deleteRoom(roomId), 60000);
+      return;
+    }
+
+    room.round++;
+    room.turn = 0;
+    io.to(roomId).emit('turn-update', {
+      currentTurn: p0.number,
+      round: room.round,
+      turnDuration: duration
+    });
+    startTurnTimer(room);
+  }
+}
+
 // --- Helpers for room lifecycle & cleanup ---
 function reindexRoomPlayers(room) {
   room.players.forEach((p, idx) => {
@@ -95,6 +220,7 @@ function reindexRoomPlayers(room) {
 function deleteRoom(rid) {
   const room = rooms.get(rid);
   if (room) {
+    clearTurnTimer(room);
     room.players.forEach(p => {
       playerRoom.delete(p.id);
       const s = io.sockets.sockets.get(p.id);
@@ -249,11 +375,14 @@ io.on('connection', (socket) => {
       io.to(socket.id).emit('your-info', { playerNumber: 2, subMode, max });
 
       if (subMode === 'perm5') {
+        const duration = getTurnDuration(subMode);
         io.to(id).emit('game-started-2p', {
           currentTurn: 1, round: 1, subMode, max,
           playerCount: 2,
-          players: [{ number: 1 }, { number: 2 }]
+          players: [{ number: 1 }, { number: 2 }],
+          turnDuration: duration
         });
+        startTurnTimer(room);
       } else {
         io.to(id).emit('room-ready', { subMode, max });
       }
@@ -344,14 +473,17 @@ io.on('connection', (socket) => {
       }
       room.phase = 'playing';
       room.turn = 0;
+      const duration = getTurnDuration(room.subMode);
       io.to(rid).emit('game-started-2p', {
         currentTurn: room.players[0].number,
         round: 1,
         subMode: room.subMode,
         max: room.max,
         playerCount: room.players.length,
-        players: room.players.map(p => ({ number: p.number }))
+        players: room.players.map(p => ({ number: p.number })),
+        turnDuration: duration
       });
+      startTurnTimer(room);
     } else {
       if (room.players.length !== 2) {
         return socket.emit('error-msg', { message: 'Chế độ này yêu cầu ĐÚNG 2 người chơi để bắt đầu!' });
@@ -375,11 +507,14 @@ io.on('connection', (socket) => {
     if (Object.keys(room.secrets).length === room.players.length) {
       room.phase = 'playing';
       room.turn = 0;
+      const duration = getTurnDuration(room.subMode);
       io.to(rid).emit('game-started-2p', {
         currentTurn: 1, round: 1, subMode: room.subMode, max: room.max,
         playerCount: room.players.length,
-        players: room.players.map(p => ({ number: p.number }))
+        players: room.players.map(p => ({ number: p.number })),
+        turnDuration: duration
       });
+      startTurnTimer(room);
     }
   });
 
@@ -435,6 +570,7 @@ io.on('connection', (socket) => {
     if (isPerm) {
       if (won) {
         room.phase = 'finished';
+        clearTurnTimer(room);
         const secrets = { secret: room.secret };
         room.players.forEach(p => {
           io.to(p.id).emit('game-over-2p', {
@@ -452,18 +588,22 @@ io.on('connection', (socket) => {
       room.turn = (room.turn + 1) % room.players.length;
       if (room.turn === 0) room.round++;
       const nextP = room.players[room.turn];
-      io.to(rid).emit('turn-update', { currentTurn: nextP.number, round: room.round });
+      const duration = getTurnDuration(room.subMode);
+      io.to(rid).emit('turn-update', { currentTurn: nextP.number, round: room.round, turnDuration: duration });
+      startTurnTimer(room);
       return;
     }
 
     // === CASE 2: WORDLE & HIGH/LOW (2 PLAYERS, EVALUATED AT END OF ROUND) ===
     const p0 = room.players[0];
     const p1 = room.players[1];
+    const duration = getTurnDuration(room.subMode);
 
     if (room.turn === 0) {
       // End of P1 turn -> Pass turn to P2
       room.turn = 1;
-      io.to(rid).emit('turn-update', { currentTurn: p1.number, round: room.round });
+      io.to(rid).emit('turn-update', { currentTurn: p1.number, round: room.round, turnDuration: duration });
+      startTurnTimer(room);
     } else {
       // End of P2 turn -> END OF ROUND EVALUATION!
       const p0Won = !!room.wonFlags[p0.id];
@@ -471,6 +611,7 @@ io.on('connection', (socket) => {
 
       if (p0Won || p1Won) {
         room.phase = 'finished';
+        clearTurnTimer(room);
         const secrets = {
           player1: room.secrets[p0.id],
           player2: room.secrets[p1.id]
@@ -506,6 +647,7 @@ io.on('connection', (socket) => {
       // Neither won in this round, check max attempts
       if (room.round >= room.max) {
         room.phase = 'finished';
+        clearTurnTimer(room);
         const secrets = {
           player1: room.secrets[p0.id],
           player2: room.secrets[p1.id]
@@ -518,7 +660,8 @@ io.on('connection', (socket) => {
       // Next round!
       room.round++;
       room.turn = 0;
-      io.to(rid).emit('turn-update', { currentTurn: p0.number, round: room.round });
+      io.to(rid).emit('turn-update', { currentTurn: p0.number, round: room.round, turnDuration: duration });
+      startTurnTimer(room);
     }
   });
 
