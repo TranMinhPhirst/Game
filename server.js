@@ -86,7 +86,7 @@ function evaluatePermutation(guess, secret) {
 }
 
 function getTurnDuration(subMode) {
-  return subMode === 'perm5' ? 15 : 30;
+  return 30;
 }
 
 function clearTurnTimer(room) {

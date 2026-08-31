@@ -562,7 +562,7 @@
 
     updateTurnUI();
     clearDigitInputs($('#guess-inputs'));
-    startTurnTimer(data.turnDuration || (activeSubMode === 'perm5' ? 15 : 30));
+    startTurnTimer(data.turnDuration || 30);
   });
 
   socket.on('guess-broadcast-2p', (data) => {
@@ -588,7 +588,7 @@
     updateRoundLabel();
     updateTurnUI();
     if (isMyTurn) clearDigitInputs($('#guess-inputs'));
-    startTurnTimer(data.turnDuration || (activeSubMode === 'perm5' ? 15 : 30));
+    startTurnTimer(data.turnDuration || 30);
   });
 
   socket.on('turn-timeout-notice', (data) => {
